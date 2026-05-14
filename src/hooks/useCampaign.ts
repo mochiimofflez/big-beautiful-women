@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { ArticleData, CampaignWiki } from '../types';
 
@@ -47,14 +47,31 @@ export function useCampaign(username?: string) {
     initCampaigns();
   }, []);
 
-  const userCampaigns = campaigns.filter(c => c.owner === username);
+  const softDeleteCampaign = async (id: string) => {
+    const updated = campaigns.map((c) =>
+        c.id === id ? { ...c, isDeleted: true, deletedAt: new Date().toISOString() } : c
+    );
+    setCampaigns(updated);
+    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+  };
+
+  const restoreCampaign = async (id: string) => {
+    const updated = campaigns.map((c) =>
+        c.id === id ? { ...c, isDeleted: false, deletedAt: undefined } : c
+    );
+    setCampaigns(updated);
+    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+  };
+
+  const activeCampaigns = campaigns.filter(c => !c.isDeleted);
+  const archivedCampaigns = campaigns.filter(c => c.isDeleted);
 
   const createCampaign = async (title: string, description: string) => {
     if (!username) return null;
     if (userCampaigns.length >= 10) throw new Error('Maximum limit of 10 campaigns reached.');
 
     const newCampaign: CampaignWiki = {
-      id: `campaign-${Date.now()}`,
+      id: `${Date.now()}`,
       slug: generateSlug(title),
       title,
       description,
@@ -71,13 +88,13 @@ export function useCampaign(username?: string) {
     return newCampaign;
   };
 
-  const getCampaignBySlug = (slug: string) => campaigns.find(c => c.slug === slug);
+  const getCampaignBySlug = useCallback((slug: string) => campaigns.find(c => c.slug === slug), [campaigns]);
 
   const createArticle = async (campaignId: string, payload: ArticleData) => {
     const now = new Date().toISOString();
     const article: ArticleData = {
       ...payload,
-      id: `c:${campaignId}:${payload.id || Date.now()}`,
+      id: `${campaignId}:${payload.id || Date.now()}`,
       slug: payload.slug || generateSlug(payload.title),
       createdAt: payload.createdAt || now,
       updatedAt: now,
@@ -92,9 +109,9 @@ export function useCampaign(username?: string) {
     return article;
   };
 
-  const getArticlesForCampaign = (campaignId: string) => {
-    return articles.filter(a => a.id.startsWith(`c:${campaignId}:`));
-  };
+  const getArticlesForCampaign = useCallback((campaignId: string) => {
+    return articles.filter(a => a.id.startsWith(`${campaignId}:`));
+  }, [articles]);
 
   const updateArticle = (updated: ArticleData) => {
     setArticles((current) =>
@@ -116,11 +133,17 @@ export function useCampaign(username?: string) {
     );
   };
 
+  const userCampaigns = activeCampaigns.filter(c => c.owner === username);
+
   return {
     campaigns,
+    activeCampaigns,
+    archivedCampaigns,
     userCampaigns,
     articles,
     createCampaign,
+    softDeleteCampaign,
+    restoreCampaign,
     getCampaignBySlug,
     getArticlesForCampaign,
     createArticle,

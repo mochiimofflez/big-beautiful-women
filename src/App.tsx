@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
@@ -315,7 +316,25 @@ function App() {
         </main>
       </div>
     </div>
+=======
+import { Routes, Route } from 'react-router-dom';
+import { Home } from './pages/Home';
+import { WikiView } from './pages/WikiView';
+import { EditorPage } from './pages/EditorPage';
+import { ProfilePage } from './pages/ProfilePage';
+import { AdminPage } from './pages/AdminPage';
+
+export function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/Campaigns/:campaignId" element={<WikiView />} />
+      <Route path="/Campaigns/:campaignId/:articleId" element={<WikiView />} />
+      <Route path="/Campaigns/:campaignId/editor" element={<EditorPage />} />
+      <Route path="/Campaigns/:campaignId/editor/:articleId" element={<EditorPage />} />
+      <Route path="/Users/:userId" element={<ProfilePage />} />
+      <Route path="/Admin" element={<AdminPage />} />
+    </Routes>
+>>>>>>> 888f09bc459faab80e3f1b5dfb833770d1d33677
   );
 }
-
-export default App;

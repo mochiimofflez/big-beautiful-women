@@ -36,6 +36,10 @@ export type ArticleBlock = {
   content: string;
   /** Optional collection of contextual links relevant to this block's content */
   links?: SourceLink[];
+  /** Optional position data for the collage layout */
+  position?: { x: number; y: number };
+  /** Optional image URL to display beneath the text */
+  imageUrl?: string;
 };
 
 /**
@@ -54,6 +58,8 @@ export type InfoboxItem = {
 export type ArticleData = {
   /** Unique internal ID */
   id: string;
+  /** Tags for the article */
+  tags?: string[];
   /** URL-friendly identifier used for routing */
   slug: string;
   /** Full title of the article */
@@ -95,6 +101,10 @@ export type CampaignWiki = {
   owner: string;
   /** ISO timestamp */
   createdAt: string;
+  /** Soft-delete flag */
+  isDeleted?: boolean;
+  /** Timestamp of deletion */
+  deletedAt?: string;
 };
 
 /**
@@ -105,8 +115,10 @@ export type UserProfile = {
   username: string;
   /** Hashed or plain-text password (depending on implementation phase) */
   password: string;
-  /** User role: 'gm' has full edit access, 'reader' is read-only with restricted visibility */
-  role: 'gm' | 'reader';
+  /** User role: 'gm' has full edit access, 'reader' is read-only, 'guest' has read-only access without submission permissions */
+  role: 'gm' | 'reader' | 'guest';
   /** List of section IDs that this specific user has permission to view */
   unlockedWikis: string[];
+  /** Optional URL for the user profile picture */
+  avatarUrl?: string;
 };
