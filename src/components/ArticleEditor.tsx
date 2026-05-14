@@ -75,6 +75,9 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
       author,
       createdAt: article?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      category: 'Compendium',
+      status: 'published',
+      layout_data: { frames: [] }
     };
     onSave(payload);
     onClose();
