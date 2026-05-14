@@ -119,6 +119,7 @@ export function useCampaign(username?: string) {
   return {
     campaigns,
     userCampaigns,
+    articles,
     createCampaign,
     getCampaignBySlug,
     getArticlesForCampaign,
