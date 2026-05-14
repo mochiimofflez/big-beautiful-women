@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { SearchBar } from './components/SearchBar';
 import { Infobox } from './components/Infobox';
-import { TooltipLink } from './components/TooltipLink';
 import { ArticleList } from './components/ArticleList';
 import { ArticleEditor } from './components/ArticleEditor';
 import { useAuth } from './hooks/useAuth';
@@ -11,35 +11,45 @@ import type { ArticleData } from './types';
 
 /**
  * Main application shell for the Worldbuilding Wiki.
- * Orchestrates authentication, campaign data management, and the overall layout.
+ * Now supports dynamic routing for multiple campaigns and articles.
  */
 function App() {
-  // Authentication hook for user roles (GM vs Reader) and invite gating
+  const { campaignSlug, articleSlug } = useParams();
+  const navigate = useNavigate();
   const auth = useAuth();
-  
-  // Campaign management hook for article CRUD operations and persistence
-  const campaign = useCampaign();
+  const campaignManager = useCampaign(auth.user?.username);
   
   // Local state for UI navigation and filtering
   const [activeSection, setActiveSection] = useState('All');
   const [query, setQuery] = useState('');
-  const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
   
   // Editor state for creating or modifying articles
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorArticle, setEditorArticle] = useState<ArticleData | null>(null);
 
+  // New Campaign state
+  const [newCampaignTitle, setNewCampaignTitle] = useState('');
+  const [newCampaignDesc, setNewCampaignDesc] = useState('');
+
+  // Find current campaign and its articles
+  const currentCampaign = useMemo(() => 
+    campaignSlug ? campaignManager.getCampaignBySlug(campaignSlug) : null
+  , [campaignSlug, campaignManager.campaigns]);
+
+  const campaignArticles = useMemo(() => 
+    currentCampaign ? campaignManager.getArticlesForCampaign(currentCampaign.id) : []
+  , [currentCampaign, campaignManager.articles]);
+
   /**
    * Filter articles based on visibility permissions.
-   * GMs can see hidden articles; Readers cannot.
    */
   const visibleArticles = useMemo(
-    () => campaign.articles.filter((article) => !article.hidden || auth.isGM),
-    [campaign.articles, auth.isGM]
+    () => campaignArticles.filter((article) => !article.hidden || auth.isGM),
+    [campaignArticles, auth.isGM]
   );
 
   /**
-   * Generate section options for the sidebar based on available article types.
+   * Generate section options for the sidebar.
    */
   const sectionOptions = useMemo(() => {
     const counts = visibleArticles.reduce<Record<string, number>>((acc, article) => {
@@ -54,7 +64,7 @@ function App() {
   }, [visibleArticles]);
 
   /**
-   * Apply search query and section filters to the visible articles list.
+   * Apply search query and section filters.
    */
   const filteredArticles = useMemo(
     () =>
@@ -69,59 +79,131 @@ function App() {
   );
 
   /**
-   * Determine the currently active article for display in the main panel.
+   * Determine the currently active article based on URL slug.
    */
   const activeArticle = useMemo(
-    () => filteredArticles.find((article) => article.id === activeArticleId) || filteredArticles[0] || null,
-    [filteredArticles, activeArticleId]
+    () => filteredArticles.find((article) => article.slug === articleSlug) || filteredArticles[0] || null,
+    [filteredArticles, articleSlug]
   );
 
   /**
-   * Sync active article ID when filters change or when the initial load occurs.
+   * Handle navigation when selecting a campaign or article.
    */
-  useEffect(() => {
-    if (!activeArticleId && filteredArticles.length) {
-      setActiveArticleId(filteredArticles[0].id);
+  const handleSelectArticle = (id: string) => {
+    const art = visibleArticles.find(a => a.id === id);
+    if (art && currentCampaign) {
+      navigate(`/${currentCampaign.slug}/${art.slug}`);
     }
-    if (activeArticleId && !filteredArticles.some((article) => article.id === activeArticleId)) {
-      setActiveArticleId(filteredArticles[0]?.id ?? null);
-    }
-  }, [filteredArticles, activeArticleId]);
+  };
 
-  /**
-   * Open the article editor for either a new article or an existing one.
-   */
+  const handleCreateCampaign = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newC = campaignManager.createCampaign(newCampaignTitle, newCampaignDesc);
+      if (newC) {
+        setNewCampaignTitle('');
+        setNewCampaignDesc('');
+        navigate(`/${newC.slug}`);
+      }
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const openEditor = (article?: ArticleData | null) => {
     setEditorArticle(article ?? null);
     setEditorOpen(true);
   };
 
-  /**
-   * Close the editor and reset the targeted article state.
-   */
   const closeEditor = () => {
     setEditorArticle(null);
     setEditorOpen(false);
   };
 
-  /**
-   * Persist changes from the editor to the campaign state.
-   */
   const handleSaveArticle = (article: ArticleData) => {
+    if (!currentCampaign) return;
     if (editorArticle) {
-      campaign.updateArticle(article);
+      campaignManager.updateArticle(article);
     } else {
-      campaign.createArticle(article);
+      campaignManager.createArticle(currentCampaign.id, article);
     }
-    setActiveArticleId(article.id);
+    navigate(`/${currentCampaign.slug}/${article.slug}`);
   };
 
-  // Helper flag for rendering management-only UI elements
   const canManage = auth.user?.role === 'gm';
 
+  // --- Render logic for Campaign Hub (Home) ---
+  if (!campaignSlug) {
+    return (
+      <div className="min-h-screen bg-charcoal text-stone p-10">
+        <div className="mx-auto max-w-[1200px] space-y-12">
+          <header className="text-center space-y-4">
+            <div className="text-xs uppercase tracking-[0.4em] text-brass/70">Grand Library Archive</div>
+            <h1 className="font-display text-5xl font-semibold text-amber-200">Worldbuilding Repository</h1>
+            <p className="text-stone/70 max-w-2xl mx-auto">Select a campaign wiki to explore or create a new archive record. Limit 10 per profile.</p>
+          </header>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Create Campaign Panel */}
+            <section className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library space-y-6">
+              <h2 className="text-2xl font-display text-amber-100">Establish New Campaign</h2>
+              <form onSubmit={handleCreateCampaign} className="space-y-4">
+                <input
+                  required
+                  placeholder="Campaign Title"
+                  value={newCampaignTitle}
+                  onChange={(e) => setNewCampaignTitle(e.target.value)}
+                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-stone outline-none focus:border-amber-400"
+                />
+                <textarea
+                  required
+                  placeholder="Campaign Description"
+                  value={newCampaignDesc}
+                  onChange={(e) => setNewCampaignDesc(e.target.value)}
+                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-stone outline-none focus:border-amber-400 min-h-[100px]"
+                />
+                <button
+                  type="submit"
+                  disabled={!auth.user}
+                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-widest text-charcoal transition hover:bg-amber-300 disabled:opacity-50"
+                >
+                  {auth.user ? 'Initialize Archive' : 'Sign in to Initialize'}
+                </button>
+              </form>
+            </section>
+
+            {/* Campaign List */}
+            <section className="space-y-6">
+              <h2 className="text-2xl font-display text-amber-100">Available Wikis</h2>
+              <div className="space-y-4">
+                {campaignManager.campaigns.length === 0 ? (
+                  <p className="text-stone/50 italic">No campaigns found in the library records.</p>
+                ) : (
+                  campaignManager.campaigns.map(c => (
+                    <Link
+                      key={c.id}
+                      to={`/${c.slug}`}
+                      className="block group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-xl font-semibold text-amber-50 group-hover:text-amber-200 transition-colors">{c.title}</h3>
+                        <span className="text-[10px] uppercase tracking-widest text-brass/40">By {c.owner}</span>
+                      </div>
+                      <p className="text-sm text-stone/70 line-clamp-2">{c.description}</p>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Render logic for Single Wiki ---
   return (
     <div className="min-h-screen bg-charcoal text-stone">
-      {/* Diegetic Article Editor Overlay */}
       <ArticleEditor 
         open={editorOpen} 
         article={editorArticle} 
@@ -131,16 +213,13 @@ function App() {
       />
 
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
-        {/* Navigation Sidebar: Branding, Search, and Auth */}
+        {/* Navigation Sidebar */}
         <aside className="shrink-0 border-r border-brass/10 bg-[#101010] p-6 lg:w-[320px]">
-          {/* Main Branding Block */}
-          <div className="mb-8 rounded-3xl border border-brass/15 bg-[#0d0b0b] p-6 shadow-library">
+          <Link to="/" className="block mb-8 rounded-3xl border border-brass/15 bg-[#0d0b0b] p-6 shadow-library hover:border-brass/40 transition-all">
             <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Grand Library</div>
-            <h1 className="font-display text-3xl font-semibold text-amber-200">Worldbuilding Wiki</h1>
-            <p className="mt-3 text-sm leading-6 text-stone/80">
-              A GM-managed campaign wiki with article creation, editing, deletion, and hidden lore control.
-            </p>
-          </div>
+            <h1 className="font-display text-2xl font-semibold text-amber-200 leading-tight">{currentCampaign?.title ?? 'Worldbuilding Wiki'}</h1>
+            <p className="mt-3 text-xs leading-5 text-stone/80 italic">Click to return to Repository Hub</p>
+          </Link>
 
           <SearchBar query={query} onSearch={setQuery} />
 
@@ -156,7 +235,7 @@ function App() {
             />
           </div>
 
-          {/* Session & User Identity Panel */}
+          {/* User Session Panel */}
           <div className="mt-8 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 text-sm text-stone/80 shadow-library">
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
               <span>Session</span>
@@ -187,54 +266,14 @@ function App() {
               )}
             </div>
           </div>
-
-          {/* Login/Registration Form Toggle */}
-          {auth.showLogin && (
-            <div className="mt-6 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
-              <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Access Control</div>
-              <p className="mb-4 text-[11px] text-stone/60 uppercase tracking-widest leading-relaxed">
-                Registration requires a valid GM-issued access key.
-              </p>
-              <div className="space-y-4">
-                <input
-                  value={auth.username}
-                  onChange={(event) => auth.setUsername(event.target.value)}
-                  placeholder="Handle"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                />
-                <input
-                  type="password"
-                  value={auth.password}
-                  onChange={(event) => auth.setPassword(event.target.value)}
-                  placeholder="Secret phrase"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                />
-                <input
-                  value={auth.inviteInput}
-                  onChange={(event) => auth.setInviteInput(event.target.value)}
-                  placeholder="Access Key (Required for new profiles)"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                />
-                {auth.authMessage && <p className="text-[11px] text-red-400">{auth.authMessage}</p>}
-                <button
-                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300"
-                  onClick={auth.handleLogin}
-                >
-                  Unlock the Archive
-                </button>
-              </div>
-            </div>
-          )}
         </aside>
 
-        {/* Main Content Area: Article Display and Contextual Panels */}
         <main className="flex-1 p-6 lg:p-10">
           <div className="grid gap-8 lg:grid-cols-[1.6fr_0.9fr]">
-            {/* Active Article Viewer */}
             <section className="space-y-8 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-brass/70">Campaign Article</p>
+                  <p className="text-xs uppercase tracking-[0.35em] text-brass/70">Archive Record</p>
                   <h2 className="mt-2 text-3xl font-semibold text-amber-100">{activeArticle?.title ?? 'No article selected'}</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-stone/70">
                     {activeArticle?.summary ?? 'Use the manager to create or select an article to display here.'}
@@ -261,63 +300,24 @@ function App() {
                 </article>
               ) : (
                 <div className="rounded-3xl border border-brass/10 bg-charcoal/80 p-6 text-sm text-stone/70">
-                  Explore your campaign list or create your first article to begin worldbuilding.
+                  Select an article from the campaign list to begin.
                 </div>
               )}
             </section>
 
-            {/* Contextual Sidebar: Metadata Infobox and Archive Gating */}
             <aside className="space-y-6">
-              {/* Infobox for quick facts/metadata */}
               <Infobox metadata={activeArticle?.infobox ?? []} />
 
-              {/* Archive Locking System (Invite Code Gating) */}
-              <div className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
-                <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
-                  <span>Locked Archive</span>
-                  <span className="text-[10px] uppercase text-stone/60">
-                    {auth.unlockedWikis.includes('iron-court') ? 'accessible' : 'sealed'}
-                  </span>
-                </div>
-                <div className="rounded-3xl border border-brass/10 bg-charcoal/90 p-4 text-sm text-stone/70">
-                  <p className="mb-3">The GM can generate an invite code to grant access to hidden wikis in this world.</p>
-                  <div className="grid gap-3">
-                    {auth.isGM && (
-                      <button
-                        className="rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
-                        onClick={() => auth.generateInviteCode('iron-court')}
-                      >
-                        Generate Invite Code
-                      </button>
-                    )}
-                    <input
-                      className="rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                      placeholder="Enter invite code"
-                      value={auth.inviteInput}
-                      onChange={(event) => auth.setInviteInput(event.target.value)}
-                    />
-                    <button
-                      className="rounded-2xl border border-brass/20 bg-amber-700/10 px-4 py-3 text-sm text-amber-100 transition hover:bg-amber-700/20"
-                      onClick={() => auth.unlockWiki('iron-court')}
-                    >
-                      Unlock The Iron Court
-                    </button>
-                    {auth.inviteMessage && <p className="text-[11px] text-amber-200">{auth.inviteMessage}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Management List of all visible/accessible articles */}
               <ArticleList
                 articles={visibleArticles}
                 activeArticleId={activeArticle?.id ?? null}
                 selectedSection={activeSection}
                 query={query}
                 canManage={canManage}
-                onSelect={(id) => setActiveArticleId(id)}
+                onSelect={handleSelectArticle}
                 onEdit={(article) => openEditor(article)}
-                onDelete={campaign.deleteArticle}
-                onToggleHidden={campaign.toggleHidden}
+                onDelete={campaignManager.deleteArticle}
+                onToggleHidden={campaignManager.toggleHidden}
               />
             </aside>
           </div>

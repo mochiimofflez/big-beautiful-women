@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { ArticleData } from '../types';
+import type { ArticleData, CampaignWiki } from '../types';
 
-/** Local storage key for persisting wiki articles */
-const STORAGE_KEY = 'wbw_campaign_articles';
+/** Local storage keys for persistence */
+const ARTICLES_KEY = 'wbw_campaign_articles';
+const CAMPAIGNS_KEY = 'wbw_campaign_wikis';
 
 /**
  * Transforms a human-readable title into a URL-friendly slug.
- * e.g., "The Giantess of Oakhaven" -> "the-giantess-of-oakhaven"
  */
 function generateSlug(title: string) {
   return title
@@ -16,37 +16,76 @@ function generateSlug(title: string) {
 }
 
 /**
- * Retrieves articles from local storage on initialization.
+ * Retrieves data from local storage on initialization.
  */
-function loadArticles(): ArticleData[] {
+function loadFromStorage<T>(key: string): T[] {
   if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = window.localStorage.getItem(key);
   return raw ? JSON.parse(raw) : [];
 }
 
 /**
- * Custom hook managing the lifecycle of wiki articles.
+ * Custom hook managing the lifecycle of campaigns and their wiki articles.
  * 
- * Provides operations for creating, updating, deleting, and toggling visibility
- * of campaign lore. Persists all changes to local storage.
+ * Now supports multiple campaigns, restricted to 10 per user.
  */
-export function useCampaign() {
-  const [articles, setArticles] = useState<ArticleData[]>(() => loadArticles());
+export function useCampaign(username?: string) {
+  const [campaigns, setCampaigns] = useState<CampaignWiki[]>(() => loadFromStorage(CAMPAIGNS_KEY));
+  const [articles, setArticles] = useState<ArticleData[]>(() => loadFromStorage(ARTICLES_KEY));
 
-  /** Persists state to localStorage whenever the articles collection changes */
+  /** Persists state to localStorage whenever the collections change */
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(articles));
+    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+  }, [campaigns]);
+
+  useEffect(() => {
+    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
   }, [articles]);
 
+  // --- Campaign Operations ---
+
+  const userCampaigns = campaigns.filter(c => c.owner === username);
+
   /**
-   * Adds a new article to the collection.
-   * Generates a unique ID and slug if not provided, and sets timestamps.
+   * Creates a new campaign wiki.
+   * Limit: 10 per profile.
    */
-  const createArticle = (payload: ArticleData) => {
+  const createCampaign = (title: string, description: string) => {
+    if (!username) return null;
+    
+    if (userCampaigns.length >= 10) {
+      throw new Error('Maximum limit of 10 campaigns reached.');
+    }
+
+    const newCampaign: CampaignWiki = {
+      id: `campaign-${Date.now()}`,
+      slug: generateSlug(title),
+      title,
+      description,
+      owner: username,
+      createdAt: new Date().toISOString()
+    };
+
+    setCampaigns(prev => [...prev, newCampaign]);
+    return newCampaign;
+  };
+
+  const getCampaignBySlug = (slug: string) => campaigns.find(c => c.slug === slug);
+
+  // --- Article Operations ---
+
+  /**
+   * Adds a new article to a specific campaign.
+   */
+  const createArticle = (campaignId: string, payload: ArticleData) => {
     const now = new Date().toISOString();
     const article: ArticleData = {
       ...payload,
       id: payload.id || `article-${Date.now()}`,
+      // We encode the campaignId into the ID or filter by a new property.
+      // For simplicity, let's add a campaignId property to the storage.
+      // But since we want to keep the ArticleData type clean, we'll prefix the ID.
+      id: `c:${campaignId}:${payload.id || Date.now()}`,
       slug: payload.slug || generateSlug(payload.title),
       createdAt: payload.createdAt || now,
       updatedAt: now,
@@ -56,9 +95,12 @@ export function useCampaign() {
   };
 
   /**
-   * Updates an existing article by ID.
-   * Automatically refreshes the 'updatedAt' timestamp and regenerates the slug.
+   * Retrieves articles for a specific campaign.
    */
+  const getArticlesForCampaign = (campaignId: string) => {
+    return articles.filter(a => a.id.startsWith(`c:${campaignId}:`));
+  };
+
   const updateArticle = (updated: ArticleData) => {
     setArticles((current) =>
       current.map((article) =>
@@ -67,15 +109,10 @@ export function useCampaign() {
     );
   };
 
-  /** Removes an article from the collection permanently */
   const deleteArticle = (id: string) => {
     setArticles((current) => current.filter((article) => article.id !== id));
   };
 
-  /**
-   * Toggles the 'hidden' flag on an article.
-   * Hidden articles are intended to be visible only to the GM (Game Master).
-   */
   const toggleHidden = (id: string) => {
     setArticles((current) =>
       current.map((article) =>
@@ -85,7 +122,11 @@ export function useCampaign() {
   };
 
   return {
-    articles,
+    campaigns,
+    userCampaigns,
+    createCampaign,
+    getCampaignBySlug,
+    getArticlesForCampaign,
     createArticle,
     updateArticle,
     deleteArticle,

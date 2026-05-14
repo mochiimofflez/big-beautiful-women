@@ -77,6 +77,24 @@ export type ArticleData = {
 };
 
 /**
+ * Data structure for a Campaign Wiki.
+ */
+export type CampaignWiki = {
+  /** Unique ID for the campaign */
+  id: string;
+  /** URL-friendly slug */
+  slug: string;
+  /** Display name of the campaign */
+  title: string;
+  /** Brief description */
+  description: string;
+  /** The username of the owner/creator */
+  owner: string;
+  /** ISO timestamp */
+  createdAt: string;
+};
+
+/**
  * Represents a user of the wiki system and their access levels.
  */
 export type UserProfile = {
