@@ -5,6 +5,7 @@ import { SearchBar } from './components/SearchBar';
 import { Infobox } from './components/Infobox';
 import { ArticleList } from './components/ArticleList';
 import { ArticleEditor } from './components/ArticleEditor';
+import { AuthFrame } from './components/AuthFrame';
 import { useAuth } from './hooks/useAuth';
 import { useCampaign } from './hooks/useCampaign';
 import type { ArticleData } from './types';
@@ -212,6 +213,21 @@ function App() {
         onClose={closeEditor} 
       />
 
+      <AuthFrame
+        show={auth.showLogin}
+        mode={auth.authMode}
+        username={auth.username}
+        password={auth.password}
+        inviteInput={auth.inviteInput}
+        authMessage={auth.authMessage}
+        onClose={() => auth.toggleLoginForm(auth.authMode)}
+        onToggleMode={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
+        onUsernameChange={auth.setUsername}
+        onPasswordChange={auth.setPassword}
+        onInviteInputChange={auth.setInviteInput}
+        onSubmit={auth.handleLogin}
+      />
+
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
         {/* Navigation Sidebar */}
         <aside className="shrink-0 border-r border-brass/10 bg-[#101010] p-6 lg:w-[320px]">
@@ -275,59 +291,6 @@ function App() {
             </div>
           </div>
 
-          {/* Login/Registration Form Toggle */}
-          {auth.showLogin && (
-            <div className="mt-6 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-xs uppercase tracking-[0.35em] text-brass/70">
-                  {auth.authMode === 'signin' ? 'Sign In' : 'Sign Up'}
-                </div>
-                <button 
-                  onClick={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
-                  className="text-[10px] uppercase tracking-widest text-stone/50 hover:text-brass transition-colors"
-                >
-                  Switch to {auth.authMode === 'signin' ? 'Sign Up' : 'Sign In'}
-                </button>
-              </div>
-              
-              {auth.authMode === 'signup' && (
-                <p className="mb-4 text-[11px] text-stone/60 uppercase tracking-widest leading-relaxed">
-                  Registration requires a valid GM-issued access key.
-                </p>
-              )}
-
-              <div className="space-y-4">
-                <input
-                  value={auth.username}
-                  onChange={(event) => auth.setUsername(event.target.value)}
-                  placeholder="Handle"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                />
-                <input
-                  type="password"
-                  value={auth.password}
-                  onChange={(event) => auth.setPassword(event.target.value)}
-                  placeholder="Secret phrase"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                />
-                {auth.authMode === 'signup' && (
-                  <input
-                    value={auth.inviteInput}
-                    onChange={(event) => auth.setInviteInput(event.target.value)}
-                    placeholder="Access Key"
-                    className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-                  />
-                )}
-                {auth.authMessage && <p className="text-[11px] text-red-400">{auth.authMessage}</p>}
-                <button
-                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300"
-                  onClick={auth.handleLogin}
-                >
-                  {auth.authMode === 'signin' ? 'Enter Archive' : 'Establish Record'}
-                </button>
-              </div>
-            </div>
-          )}
         </aside>
 
         <main className="flex-1 p-6 lg:p-10">
