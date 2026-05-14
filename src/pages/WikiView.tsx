@@ -5,6 +5,7 @@ import { SearchBar } from '../components/SearchBar';
 import { ArticleList } from '../components/ArticleList';
 import { UserMenu } from '../components/UserMenu';
 import { CollageArticle } from '../components/CollageArticle';
+import { AuthFrame } from '../components/AuthFrame';
 import { useAuth } from '../hooks/useAuth';
 import { useCampaign } from '../hooks/useCampaign';
 import { ArticleData, ArticleBlock } from '../types';
@@ -94,13 +95,29 @@ export function WikiView() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [history, historyIndex, campaignManager]);
 
-  // Validation checks after hooks
   if (!currentCampaign) return <NotFoundCampaignPage />;
   if (articleSlug && !activeArticle) return <NotFoundArticlePage />;
 
   return (
     <div className="flex h-screen bg-charcoal text-stone">
+      <AuthFrame
+        show={auth.showLogin}
+        mode={auth.authMode}
+        username={auth.username}
+        password={auth.password}
+        inviteInput={auth.inviteInput}
+        authMessage={auth.authMessage}
+        onClose={() => auth.toggleLoginForm(auth.authMode)}
+        onToggleMode={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
+        onUsernameChange={auth.setUsername}
+        onPasswordChange={auth.setPassword}
+        onInviteInputChange={auth.setInviteInput}
+        onSubmit={auth.handleLogin}
+      />
       <aside className="shrink-0 border-r border-brass/10 bg-[#101010] p-6 w-[320px] overflow-y-auto">
+        {!auth.user && (
+            <button onClick={() => auth.toggleLoginForm('signin')} className="w-full mb-6 p-2 rounded-2xl border border-brass/20 text-brass hover:bg-brass/10">Sign In</button>
+        )}
         {auth.user && (
           <div className="relative mb-6">
             <div className="flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313]">
@@ -146,7 +163,9 @@ export function WikiView() {
                 />
             </div>
         ) : (
-            <div className="text-sm p-4 border border-brass/10 rounded-2xl">Shared Campaign Notes</div>
+            <div className="text-sm p-4 border border-brass/10 rounded-2xl space-y-4">
+                <div>Shared Campaign Notes</div>
+            </div>
         )}
       </aside>
 
