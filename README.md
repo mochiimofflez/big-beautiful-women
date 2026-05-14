@@ -18,6 +18,8 @@ npm run dev
 
 Open the local URL shown by Vite and explore the worldbuilding wiki interface.
 
+This repo is configured so that pushes to the `experimental` branch trigger a GitHub Pages deployment via workflow. The site is built into the `docs/` folder for static hosting.
+
 ## Project structure
 
 - `src/App.tsx` — main layout and feature shell
