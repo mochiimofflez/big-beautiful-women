@@ -22,6 +22,7 @@ export function WikiView() {
   const [isPlayerView, setIsPlayerView] = useState(false);
   const [activeTab, setActiveTab] = useState<'articles' | 'notes'>('articles');
   const [dragMode, setDragMode] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [history, setHistory] = useState<ArticleData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
@@ -129,6 +130,17 @@ export function WikiView() {
             </div>
             {isMenuOpen && (
                 <div className="absolute top-16 left-0 w-full bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-10">
+                    <label className="block w-full text-left p-2 hover:bg-brass/10 rounded cursor-pointer">
+                        Change Picture
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => auth.updateAvatar(reader.result as string);
+                                reader.readAsDataURL(file);
+                            }
+                        }} />
+                    </label>
                     <button className="block w-full text-left p-2 hover:bg-brass/10 rounded">Settings</button>
                     <button onClick={() => { auth.logout(); navigate('/'); }} className="block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded">Logout</button>
                 </div>
