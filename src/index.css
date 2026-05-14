@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-family: 'Playfair Display', Georgia, serif;
+  background-color: #0b0a0a;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #0b0a0a;
+  color: #d5c9b0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(176, 138, 70, 0.35);
+  color: #f8f1e6;
+}
+
+.tooltip-card {
+  transform: translateY(8px);
+}
