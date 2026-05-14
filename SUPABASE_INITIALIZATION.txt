@@ -1,0 +1,65 @@
+-- 1. Profiles Table
+CREATE TABLE IF NOT EXISTS profiles (
+  username TEXT PRIMARY KEY,
+  password TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'reader',
+  unlocked_wikis JSONB DEFAULT '[]'::jsonb,
+  invited_by TEXT
+);
+
+-- 2. Campaigns Table
+CREATE TABLE IF NOT EXISTS campaigns (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  owner TEXT REFERENCES profiles(username),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  player_sheets JSONB DEFAULT '{}'::jsonb,
+  items JSONB DEFAULT '[]'::jsonb,
+  members TEXT[] DEFAULT '{}'
+);
+
+-- 3. Articles Table
+CREATE TABLE IF NOT EXISTS articles (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL,
+  title TEXT NOT NULL,
+  summary TEXT,
+  type TEXT NOT NULL,
+  infobox JSONB DEFAULT '[]'::jsonb,
+  body JSONB DEFAULT '[]'::jsonb,
+  hidden BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  author TEXT REFERENCES profiles(username),
+  category TEXT DEFAULT 'Compendium',
+  status TEXT DEFAULT 'published',
+  layout_data JSONB DEFAULT '{}'::jsonb
+);
+
+-- 4. Invitations Table
+CREATE TABLE IF NOT EXISTS invitations (
+  code TEXT PRIMARY KEY,
+  type TEXT NOT NULL, -- 'site' or 'campaign'
+  campaign_id TEXT REFERENCES campaigns(id),
+  expires_at TIMESTAMPTZ NOT NULL,
+  max_uses INTEGER DEFAULT 1,
+  used_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Audit Log Table
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id SERIAL PRIMARY KEY,
+  action TEXT NOT NULL,
+  performed_by TEXT REFERENCES profiles(username),
+  target_id TEXT,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed the database with the SYSTEM administrative profile
+INSERT INTO profiles (username, password, role, unlocked_wikis)
+VALUES ('SYSTEM', '7rE31]Q}DJ^Pa#b~(L8', 'gm', '["all"]')
+ON CONFLICT (username) DO NOTHING;

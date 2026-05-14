@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  font-family: 'Playfair Display', Georgia, serif;
+  background-color: #0b0a0a;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #0b0a0a;
+  color: #d5c9b0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(176, 138, 70, 0.35);
+  color: #f8f1e6;
+}
+
+.parchment {
+  background-color: #e6dcc5;
+  background-image: url("https://www.transparenttextures.com/patterns/old-paper.png");
+  color: #3e3322;
+  border: 1px solid #c9b794;
+  padding: 2rem;
+  border-radius: 4px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
