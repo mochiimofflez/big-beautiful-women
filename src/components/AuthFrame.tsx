@@ -1,0 +1,96 @@
+interface AuthFrameProps {
+  show: boolean;
+  mode: 'signin' | 'signup';
+  username: string;
+  password: string;
+  inviteInput: string;
+  authMessage: string;
+  onClose: () => void;
+  onToggleMode: () => void;
+  onUsernameChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onInviteInputChange: (value: string) => void;
+  onSubmit: () => void;
+}
+
+export function AuthFrame({
+  show,
+  mode,
+  username,
+  password,
+  inviteInput,
+  authMessage,
+  onClose,
+  onToggleMode,
+  onUsernameChange,
+  onPasswordChange,
+  onInviteInputChange,
+  onSubmit,
+}: AuthFrameProps) {
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[32px] border border-brass/15 bg-[#0d0b0b] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.35em] text-brass/70">
+              {mode === 'signin' ? 'Sign In' : 'Sign Up'}
+            </div>
+            <p className="mt-2 text-sm text-stone/70">
+              {mode === 'signin'
+                ? 'Enter your archive handle and secret phrase.'
+                : 'Create a new reader record with a valid access key.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-brass/20 bg-soot/80 px-3 py-2 text-xs uppercase tracking-[0.35em] text-stone/70 hover:bg-soot transition"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <input
+            value={username}
+            onChange={(event) => onUsernameChange(event.target.value)}
+            placeholder="Handle"
+            className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => onPasswordChange(event.target.value)}
+            placeholder="Secret phrase"
+            className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+          />
+          {mode === 'signup' && (
+            <input
+              value={inviteInput}
+              onChange={(event) => onInviteInputChange(event.target.value)}
+              placeholder="Access Key"
+              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+            />
+          )}
+          {authMessage && <p className="text-[11px] text-red-400">{authMessage}</p>}
+          <button
+            type="button"
+            onClick={onSubmit}
+            className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300"
+          >
+            {mode === 'signin' ? 'Enter Archive' : 'Establish Record'}
+          </button>
+          <button
+            type="button"
+            onClick={onToggleMode}
+            className="w-full rounded-2xl border border-brass/20 bg-transparent px-4 py-3 text-xs uppercase tracking-[0.25em] text-stone/70 transition hover:bg-brass/10"
+          >
+            Switch to {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
