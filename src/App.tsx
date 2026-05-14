@@ -257,15 +257,77 @@ function App() {
                   </button>
                 </>
               ) : (
-                <button
-                  className="w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass transition hover:bg-brass/20"
-                  onClick={auth.toggleLoginForm}
-                >
-                  Sign In / Register
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className="w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-[10px] uppercase tracking-widest text-brass transition hover:bg-brass/20"
+                    onClick={() => auth.toggleLoginForm('signin')}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    className="w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-[10px] uppercase tracking-widest text-brass transition hover:bg-brass/20"
+                    onClick={() => auth.toggleLoginForm('signup')}
+                  >
+                    Sign Up
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Login/Registration Form Toggle */}
+          {auth.showLogin && (
+            <div className="mt-6 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-xs uppercase tracking-[0.35em] text-brass/70">
+                  {auth.authMode === 'signin' ? 'Sign In' : 'Sign Up'}
+                </div>
+                <button 
+                  onClick={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
+                  className="text-[10px] uppercase tracking-widest text-stone/50 hover:text-brass transition-colors"
+                >
+                  Switch to {auth.authMode === 'signin' ? 'Sign Up' : 'Sign In'}
+                </button>
+              </div>
+              
+              {auth.authMode === 'signup' && (
+                <p className="mb-4 text-[11px] text-stone/60 uppercase tracking-widest leading-relaxed">
+                  Registration requires a valid GM-issued access key.
+                </p>
+              )}
+
+              <div className="space-y-4">
+                <input
+                  value={auth.username}
+                  onChange={(event) => auth.setUsername(event.target.value)}
+                  placeholder="Handle"
+                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+                />
+                <input
+                  type="password"
+                  value={auth.password}
+                  onChange={(event) => auth.setPassword(event.target.value)}
+                  placeholder="Secret phrase"
+                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+                />
+                {auth.authMode === 'signup' && (
+                  <input
+                    value={auth.inviteInput}
+                    onChange={(event) => auth.setInviteInput(event.target.value)}
+                    placeholder="Access Key"
+                    className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+                  />
+                )}
+                {auth.authMessage && <p className="text-[11px] text-red-400">{auth.authMessage}</p>}
+                <button
+                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300"
+                  onClick={auth.handleLogin}
+                >
+                  {auth.authMode === 'signin' ? 'Enter Archive' : 'Establish Record'}
+                </button>
+              </div>
+            </div>
+          )}
         </aside>
 
         <main className="flex-1 p-6 lg:p-10">

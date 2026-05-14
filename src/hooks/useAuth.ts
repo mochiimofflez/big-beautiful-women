@@ -21,6 +21,7 @@ export function useAuth() {
   
   // UI State
   const [showLogin, setShowLogin] = useState(false);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authMessage, setAuthMessage] = useState('');
@@ -67,6 +68,12 @@ export function useAuth() {
     initAuth();
   }, []);
 
+  const toggleLoginForm = (mode: 'signin' | 'signup' = 'signin') => {
+    setAuthMode(mode);
+    setShowLogin((value) => !value);
+    setAuthMessage('');
+  };
+
   /**
    * Processes login or registration.
    */
@@ -78,7 +85,12 @@ export function useAuth() {
 
     const existing = profiles.find((profile) => profile.username === username);
     
-    if (existing) {
+    // SIGN IN Flow
+    if (authMode === 'signin') {
+      if (!existing) {
+        setAuthMessage('No record found for this handle.');
+        return;
+      }
       if (existing.password !== password) {
         setAuthMessage('Incorrect secret phrase.');
         return;
@@ -90,7 +102,12 @@ export function useAuth() {
       return;
     }
 
-    // Registration logic
+    // SIGN UP Flow (Registration)
+    if (existing) {
+      setAuthMessage('This handle is already recorded in the archive.');
+      return;
+    }
+
     const storedInvite = window.localStorage.getItem(INVITE_STORAGE_KEY);
     if (!storedInvite || inviteInput.trim().toUpperCase() !== storedInvite) {
       setAuthMessage('A valid Access Key is required to establish a new profile record.');
@@ -164,6 +181,7 @@ export function useAuth() {
   return {
     user,
     showLogin,
+    authMode,
     username,
     password,
     inviteInput,
@@ -176,6 +194,7 @@ export function useAuth() {
     setPassword,
     setInviteInput,
     setInviteMessage,
+    setAuthMode,
     toggleLoginForm,
     handleLogin,
     logout,
