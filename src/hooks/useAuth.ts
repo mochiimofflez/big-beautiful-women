@@ -86,7 +86,8 @@ export function useAuth() {
   /**
    * Processes login or registration.
    * If the username doesn't exist, a new profile is created.
-   * The first registered user is automatically granted 'gm' status.
+   * New registrations (Readers) now require a valid GM-issued invite code.
+   * The first registered user is automatically granted 'gm' status and bypasses invite requirements.
    */
   const handleLogin = () => {
     if (!username || !password) {
@@ -107,7 +108,18 @@ export function useAuth() {
     }
 
     // Diegetic Role Assignment: The first person to access the terminal is the GM
-    const role = profiles.length === 0 ? 'gm' : 'reader';
+    const isFirstUser = profiles.length === 0;
+    
+    // Check for invite code if not the first user
+    if (!isFirstUser) {
+      const stored = window.localStorage.getItem(INVITE_STORAGE_KEY);
+      if (!stored || inviteInput.trim().toUpperCase() !== stored) {
+        setAuthMessage('A valid invite code is required to create a new profile.');
+        return;
+      }
+    }
+
+    const role = isFirstUser ? 'gm' : 'reader';
     const profile: UserProfile = {
       username,
       password,
@@ -118,6 +130,7 @@ export function useAuth() {
     setUser(profile);
     setShowLogin(false);
     setAuthMessage('');
+    setInviteInput('');
   };
 
   /** Clears the current session */

@@ -59,22 +59,7 @@ export function Sidebar({ sections, activeSection, onSelect, canViewLocked, onUn
         </div>
       </div>
 
-      {/* Access Management Box (Typically visible to GMs) */}
-      <div className="rounded-3xl border border-brass/10 bg-soot/80 p-5">
-        <div className="mb-3 text-xs uppercase tracking-[0.35em] text-brass/70">Locked Access</div>
-        <p className="mb-4 text-sm leading-7 text-stone/70">
-          Gate certain wikis behind GM-issued invite keys to preserve hidden story arcs and restricted lore.
-        </p>
-        <button
-          type="button"
-          className="w-full rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
-          onClick={() => generateInviteCode('iron-court')}
-        >
-          Create GM Invite Code
-        </button>
-      </div>
-
-      {/* Display for the active invite code */}
+      {/* Display for the active invite code (Visible to GMs to share with players) */}
       {inviteCode ? (
         <div className="rounded-3xl border border-brass/10 bg-[#111] p-4 text-sm text-stone/80">
           <div className="mb-2 text-xs uppercase tracking-[0.35em] text-brass/70">Current Invite</div>

@@ -192,6 +192,9 @@ function App() {
           {auth.showLogin && (
             <div className="mt-6 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
               <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Access Control</div>
+              <p className="mb-4 text-[11px] text-stone/60 uppercase tracking-widest leading-relaxed">
+                Registration requires a valid GM-issued access key.
+              </p>
               <div className="space-y-4">
                 <input
                   value={auth.username}
@@ -204,6 +207,12 @@ function App() {
                   value={auth.password}
                   onChange={(event) => auth.setPassword(event.target.value)}
                   placeholder="Secret phrase"
+                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+                />
+                <input
+                  value={auth.inviteInput}
+                  onChange={(event) => auth.setInviteInput(event.target.value)}
+                  placeholder="Access Key (Required for new profiles)"
                   className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
                 />
                 {auth.authMessage && <p className="text-[11px] text-red-400">{auth.authMessage}</p>}
@@ -273,12 +282,14 @@ function App() {
                 <div className="rounded-3xl border border-brass/10 bg-charcoal/90 p-4 text-sm text-stone/70">
                   <p className="mb-3">The GM can generate an invite code to grant access to hidden wikis in this world.</p>
                   <div className="grid gap-3">
-                    <button
-                      className="rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
-                      onClick={() => auth.generateInviteCode('iron-court')}
-                    >
-                      Generate Invite Code
-                    </button>
+                    {auth.isGM && (
+                      <button
+                        className="rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
+                        onClick={() => auth.generateInviteCode('iron-court')}
+                      >
+                        Generate Invite Code
+                      </button>
+                    )}
                     <input
                       className="rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
                       placeholder="Enter invite code"
