@@ -2,17 +2,33 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ArticleData, InfoboxItem, ArticleBlock } from '../types';
 
 type ArticleEditorProps = {
+  /** Whether the editor modal is currently visible */
   open: boolean;
+  /** The article data to edit, or null if creating a new article */
   article?: ArticleData | null;
+  /** The username of the person editing, used for the 'author' field */
   author: string;
+  /** Callback triggered when the article is saved */
   onSave: (article: ArticleData) => void;
+  /** Callback to close the editor without saving */
   onClose: () => void;
 };
 
+/** Helpers to generate empty state for dynamic form sections */
 const emptyBlock = (): ArticleBlock => ({ title: '', content: '' });
 const emptyInfobox = (): InfoboxItem => ({ label: '', value: '' });
 
+/**
+ * A comprehensive modal editor for creating and modifying wiki articles.
+ * 
+ * This component manages a complex form state that includes:
+ * - Basic metadata (Title, Summary, Type)
+ * - Dynamic lists of Infobox items (key-value pairs)
+ * - Dynamic lists of Article Blocks (titled text sections)
+ * - Visibility controls (Hidden vs. Public)
+ */
 export function ArticleEditor({ open, article, author, onSave, onClose }: ArticleEditorProps) {
+  // --- Form State ---
   const [title, setTitle] = useState(article?.title ?? '');
   const [summary, setSummary] = useState(article?.summary ?? '');
   const [type, setType] = useState(article?.type ?? 'Compendium');
@@ -20,6 +36,7 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
   const [blocks, setBlocks] = useState<ArticleBlock[]>(article?.body ?? [emptyBlock()]);
   const [infobox, setInfobox] = useState<InfoboxItem[]>(article?.infobox ?? [emptyInfobox(), emptyInfobox()]);
 
+  /** Syncs local state with props when the editor opens or the active article changes */
   useEffect(() => {
     setTitle(article?.title ?? '');
     setSummary(article?.summary ?? '');
@@ -31,10 +48,19 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
 
   const isEditMode = Boolean(article);
 
-  const slug = useMemo(() => title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), [title]);
+  /** Computes the URL slug in real-time based on the title */
+  const slug = useMemo(() => 
+    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), 
+    [title]
+  );
 
+  /**
+   * Validates and prepares the data for saving.
+   * Filters out empty blocks and infobox rows to maintain data integrity.
+   */
   const handleSave = () => {
     if (!title.trim()) return;
+    
     const validBlocks = blocks.filter((block) => block.title.trim() || block.content.trim());
     const validInfobox = infobox.filter((item) => item.label.trim() && item.value.trim());
 
@@ -56,6 +82,8 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
     onClose();
   };
 
+  // --- State Updaters for Dynamic Fields ---
+
   const updateBlock = (index: number, field: keyof ArticleBlock, value: string) => {
     setBlocks((current) => current.map((block, idx) => (idx === index ? { ...block, [field]: value } : block)));
   };
@@ -71,15 +99,20 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-3xl overflow-auto rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library">
+        
+        {/* Header Section */}
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-[0.35em] text-brass/70">{isEditMode ? 'Edit Article' : 'New Article'}</div>
+            <div className="text-xs uppercase tracking-[0.35em] text-brass/70">
+              {isEditMode ? 'Edit Article' : 'New Article'}
+            </div>
             <h2 className="mt-2 text-2xl font-semibold text-amber-100">{title || 'Untitled Entry'}</h2>
           </div>
           <button className="text-sm text-stone/70 hover:text-stone" onClick={onClose}>Close</button>
         </div>
 
+        {/* Basic Info Fields */}
         <div className="grid gap-4 lg:grid-cols-2">
           <label className="space-y-2 text-sm">
             <span className="text-stone/80">Title</span>
@@ -110,6 +143,7 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
           />
         </label>
 
+        {/* Infobox & Visibility Grid */}
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           <div className="rounded-3xl border border-brass/10 bg-[#111] p-4">
             <div className="mb-3 text-xs uppercase tracking-[0.35em] text-brass/70">Infobox</div>
@@ -144,7 +178,12 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
             <div className="mb-3 flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
               <span>Visibility</span>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-stone/80">
-                <input type="checkbox" checked={hidden} onChange={(event) => setHidden(event.target.checked)} className="h-4 w-4 rounded border-brass/20 bg-[#0f0d0d] text-brass" />
+                <input 
+                  type="checkbox" 
+                  checked={hidden} 
+                  onChange={(event) => setHidden(event.target.checked)} 
+                  className="h-4 w-4 rounded border-brass/20 bg-[#0f0d0d] text-brass" 
+                />
                 Hidden
               </label>
             </div>
@@ -154,6 +193,7 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
           </div>
         </div>
 
+        {/* Body Sections (Article Blocks) */}
         <div className="mt-6 rounded-3xl border border-brass/10 bg-[#111] p-4">
           <div className="mb-3 text-xs uppercase tracking-[0.35em] text-brass/70">Article Sections</div>
           <div className="space-y-4">
@@ -184,6 +224,7 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
           </div>
         </div>
 
+        {/* Footer Actions */}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-stone/70">Author: {author}</div>
           <button

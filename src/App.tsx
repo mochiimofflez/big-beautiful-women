@@ -9,20 +9,38 @@ import { useAuth } from './hooks/useAuth';
 import { useCampaign } from './hooks/useCampaign';
 import type { ArticleData } from './types';
 
+/**
+ * Main application shell for the Worldbuilding Wiki.
+ * Orchestrates authentication, campaign data management, and the overall layout.
+ */
 function App() {
+  // Authentication hook for user roles (GM vs Reader) and invite gating
   const auth = useAuth();
+  
+  // Campaign management hook for article CRUD operations and persistence
   const campaign = useCampaign();
+  
+  // Local state for UI navigation and filtering
   const [activeSection, setActiveSection] = useState('All');
   const [query, setQuery] = useState('');
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
+  
+  // Editor state for creating or modifying articles
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorArticle, setEditorArticle] = useState<ArticleData | null>(null);
 
+  /**
+   * Filter articles based on visibility permissions.
+   * GMs can see hidden articles; Readers cannot.
+   */
   const visibleArticles = useMemo(
     () => campaign.articles.filter((article) => !article.hidden || auth.isGM),
     [campaign.articles, auth.isGM]
   );
 
+  /**
+   * Generate section options for the sidebar based on available article types.
+   */
   const sectionOptions = useMemo(() => {
     const counts = visibleArticles.reduce<Record<string, number>>((acc, article) => {
       acc[article.type] = (acc[article.type] || 0) + 1;
@@ -35,6 +53,9 @@ function App() {
     ];
   }, [visibleArticles]);
 
+  /**
+   * Apply search query and section filters to the visible articles list.
+   */
   const filteredArticles = useMemo(
     () =>
       visibleArticles.filter((article) => {
@@ -47,11 +68,17 @@ function App() {
     [visibleArticles, activeSection, query]
   );
 
+  /**
+   * Determine the currently active article for display in the main panel.
+   */
   const activeArticle = useMemo(
     () => filteredArticles.find((article) => article.id === activeArticleId) || filteredArticles[0] || null,
     [filteredArticles, activeArticleId]
   );
 
+  /**
+   * Sync active article ID when filters change or when the initial load occurs.
+   */
   useEffect(() => {
     if (!activeArticleId && filteredArticles.length) {
       setActiveArticleId(filteredArticles[0].id);
@@ -61,16 +88,25 @@ function App() {
     }
   }, [filteredArticles, activeArticleId]);
 
+  /**
+   * Open the article editor for either a new article or an existing one.
+   */
   const openEditor = (article?: ArticleData | null) => {
     setEditorArticle(article ?? null);
     setEditorOpen(true);
   };
 
+  /**
+   * Close the editor and reset the targeted article state.
+   */
   const closeEditor = () => {
     setEditorArticle(null);
     setEditorOpen(false);
   };
 
+  /**
+   * Persist changes from the editor to the campaign state.
+   */
   const handleSaveArticle = (article: ArticleData) => {
     if (editorArticle) {
       campaign.updateArticle(article);
@@ -80,13 +116,24 @@ function App() {
     setActiveArticleId(article.id);
   };
 
+  // Helper flag for rendering management-only UI elements
   const canManage = auth.user?.role === 'gm';
 
   return (
     <div className="min-h-screen bg-charcoal text-stone">
-      <ArticleEditor open={editorOpen} article={editorArticle} author={auth.user?.username ?? 'Unknown'} onSave={handleSaveArticle} onClose={closeEditor} />
+      {/* Diegetic Article Editor Overlay */}
+      <ArticleEditor 
+        open={editorOpen} 
+        article={editorArticle} 
+        author={auth.user?.username ?? 'Unknown'} 
+        onSave={handleSaveArticle} 
+        onClose={closeEditor} 
+      />
+
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
+        {/* Navigation Sidebar: Branding, Search, and Auth */}
         <aside className="shrink-0 border-r border-brass/10 bg-[#101010] p-6 lg:w-[320px]">
+          {/* Main Branding Block */}
           <div className="mb-8 rounded-3xl border border-brass/15 bg-[#0d0b0b] p-6 shadow-library">
             <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Grand Library</div>
             <h1 className="font-display text-3xl font-semibold text-amber-200">Worldbuilding Wiki</h1>
@@ -109,10 +156,13 @@ function App() {
             />
           </div>
 
+          {/* Session & User Identity Panel */}
           <div className="mt-8 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 text-sm text-stone/80 shadow-library">
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
               <span>Session</span>
-              <span className="rounded-full border border-brass/20 bg-soot px-2 py-1 text-[10px] uppercase">{auth.user ? 'Logged In' : 'Guest'}</span>
+              <span className="rounded-full border border-brass/20 bg-soot px-2 py-1 text-[10px] uppercase">
+                {auth.user ? 'Logged In' : 'Guest'}
+              </span>
             </div>
             <div className="mt-4 space-y-3">
               {auth.user ? (
@@ -138,6 +188,7 @@ function App() {
             </div>
           </div>
 
+          {/* Login/Registration Form Toggle */}
           {auth.showLogin && (
             <div className="mt-6 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
               <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Access Control</div>
@@ -167,14 +218,18 @@ function App() {
           )}
         </aside>
 
+        {/* Main Content Area: Article Display and Contextual Panels */}
         <main className="flex-1 p-6 lg:p-10">
           <div className="grid gap-8 lg:grid-cols-[1.6fr_0.9fr]">
+            {/* Active Article Viewer */}
             <section className="space-y-8 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-brass/70">Campaign Article</p>
                   <h2 className="mt-2 text-3xl font-semibold text-amber-100">{activeArticle?.title ?? 'No article selected'}</h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-stone/70">{activeArticle?.summary ?? 'Use the manager to create or select an article to display here.'}</p>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-stone/70">
+                    {activeArticle?.summary ?? 'Use the manager to create or select an article to display here.'}
+                  </p>
                 </div>
                 {canManage ? (
                   <button
@@ -202,13 +257,18 @@ function App() {
               )}
             </section>
 
+            {/* Contextual Sidebar: Metadata Infobox and Archive Gating */}
             <aside className="space-y-6">
+              {/* Infobox for quick facts/metadata */}
               <Infobox metadata={activeArticle?.infobox ?? []} />
 
+              {/* Archive Locking System (Invite Code Gating) */}
               <div className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
                 <div className="mb-4 flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
                   <span>Locked Archive</span>
-                  <span className="text-[10px] uppercase text-stone/60">{auth.unlockedWikis.includes('iron-court') ? 'accessible' : 'sealed'}</span>
+                  <span className="text-[10px] uppercase text-stone/60">
+                    {auth.unlockedWikis.includes('iron-court') ? 'accessible' : 'sealed'}
+                  </span>
                 </div>
                 <div className="rounded-3xl border border-brass/10 bg-charcoal/90 p-4 text-sm text-stone/70">
                   <p className="mb-3">The GM can generate an invite code to grant access to hidden wikis in this world.</p>
@@ -236,6 +296,7 @@ function App() {
                 </div>
               </div>
 
+              {/* Management List of all visible/accessible articles */}
               <ArticleList
                 articles={visibleArticles}
                 activeArticleId={activeArticle?.id ?? null}
