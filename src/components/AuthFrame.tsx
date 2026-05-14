@@ -30,7 +30,13 @@ export function AuthFrame({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    <div 
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0d0b0b] p-4"
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') e.preventDefault();
+      }}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
       <div className="w-full max-w-md rounded-[32px] border border-brass/15 bg-[#0d0b0b] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -43,13 +49,7 @@ export function AuthFrame({
                 : 'Create a new reader record with a valid access key.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-brass/20 bg-soot/80 px-3 py-2 text-xs uppercase tracking-[0.35em] text-stone/70 hover:bg-soot transition"
-          >
-            Close
-          </button>
+          {/* Close button removed for landing page gateway enforcement */}
         </div>
 
         <div className="space-y-4">

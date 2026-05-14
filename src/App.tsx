@@ -4,31 +4,40 @@ import { Sidebar } from './components/Sidebar';
 import { SearchBar } from './components/SearchBar';
 import { Infobox } from './components/Infobox';
 import { ArticleList } from './components/ArticleList';
+import { SessionModal } from './components/SessionModal';
 import { ArticleEditor } from './components/ArticleEditor';
-import { AuthFrame } from './components/AuthFrame';
+import { LandingPage } from './components/LandingPage';
+import { AdminPanel } from './components/AdminPanel';
 import { useAuth } from './hooks/useAuth';
 import { useCampaign } from './hooks/useCampaign';
+import { useSessionTimer } from './hooks/useSessionTimer';
 import type { ArticleData } from './types';
 
-/**
- * Main application shell for the Worldbuilding Wiki.
- * Now supports dynamic routing for multiple campaigns and articles.
- */
 function App() {
   const { campaignSlug, articleSlug } = useParams();
   const navigate = useNavigate();
   const auth = useAuth();
-  const campaignManager = useCampaign(auth.user?.username);
+  console.log("App render diagnostics:", { authed: !!auth.user, loading: auth.loading, slug: campaignSlug });
   
-  // Local state for UI navigation and filtering
+  // Wait for loading to complete
+  if (auth.loading) {
+    return <div className="min-h-screen bg-[#0d0b0b] flex items-center justify-center text-stone">Initializing Archive...</div>;
+  }
+
+  // If not authed, show LandingPage
+  if (!auth.user) {
+    return <LandingPage />;
+  }
+
+  // --- Logic for authenticated session ---
+  const session = useSessionTimer();
+  const campaignManager = useCampaign(auth.user.username);
+  
   const [activeSection, setActiveSection] = useState('All');
   const [query, setQuery] = useState('');
-  
-  // Editor state for creating or modifying articles
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorArticle, setEditorArticle] = useState<ArticleData | null>(null);
-
-  // New Campaign state
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   const [newCampaignTitle, setNewCampaignTitle] = useState('');
   const [newCampaignDesc, setNewCampaignDesc] = useState('');
 
@@ -41,17 +50,11 @@ function App() {
     currentCampaign ? campaignManager.getArticlesForCampaign(currentCampaign.id) : []
   , [currentCampaign, campaignManager.articles]);
 
-  /**
-   * Filter articles based on visibility permissions.
-   */
   const visibleArticles = useMemo(
     () => campaignArticles.filter((article) => !article.hidden || auth.isGM),
     [campaignArticles, auth.isGM]
   );
 
-  /**
-   * Generate section options for the sidebar.
-   */
   const sectionOptions = useMemo(() => {
     const counts = visibleArticles.reduce<Record<string, number>>((acc, article) => {
       acc[article.type] = (acc[article.type] || 0) + 1;
@@ -64,9 +67,6 @@ function App() {
     ];
   }, [visibleArticles]);
 
-  /**
-   * Apply search query and section filters.
-   */
   const filteredArticles = useMemo(
     () =>
       visibleArticles.filter((article) => {
@@ -79,17 +79,11 @@ function App() {
     [visibleArticles, activeSection, query]
   );
 
-  /**
-   * Determine the currently active article based on URL slug.
-   */
   const activeArticle = useMemo(
     () => filteredArticles.find((article) => article.slug === articleSlug) || filteredArticles[0] || null,
     [filteredArticles, articleSlug]
   );
 
-  /**
-   * Handle navigation when selecting a campaign or article.
-   */
   const handleSelectArticle = (id: string) => {
     const art = visibleArticles.find(a => a.id === id);
     if (art && currentCampaign) {
@@ -145,7 +139,6 @@ function App() {
           </header>
 
           <div className="grid gap-8 lg:grid-cols-2">
-            {/* Create Campaign Panel */}
             <section className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library space-y-6">
               <h2 className="text-2xl font-display text-amber-100">Establish New Campaign</h2>
               <form onSubmit={handleCreateCampaign} className="space-y-4">
@@ -165,15 +158,13 @@ function App() {
                 />
                 <button
                   type="submit"
-                  disabled={!auth.user}
-                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-widest text-charcoal transition hover:bg-amber-300 disabled:opacity-50"
+                  className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-widest text-charcoal transition hover:bg-amber-300"
                 >
-                  {auth.user ? 'Initialize Archive' : 'Sign in to Initialize'}
+                  Initialize Archive
                 </button>
               </form>
             </section>
 
-            {/* Campaign List */}
             <section className="space-y-6">
               <h2 className="text-2xl font-display text-amber-100">Available Wikis</h2>
               <div className="space-y-4">
@@ -202,9 +193,9 @@ function App() {
     );
   }
 
-  // --- Render logic for Single Wiki ---
   return (
     <div className="min-h-screen bg-charcoal text-stone">
+      {session.showPrompt && <SessionModal onKeepSession={session.reset} />}
       <ArticleEditor 
         open={editorOpen} 
         article={editorArticle} 
@@ -213,20 +204,9 @@ function App() {
         onClose={closeEditor} 
       />
 
-      <AuthFrame
-        show={auth.showLogin}
-        mode={auth.authMode}
-        username={auth.username}
-        password={auth.password}
-        inviteInput={auth.inviteInput}
-        authMessage={auth.authMessage}
-        onClose={() => auth.toggleLoginForm(auth.authMode)}
-        onToggleMode={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
-        onUsernameChange={auth.setUsername}
-        onPasswordChange={auth.setPassword}
-        onInviteInputChange={auth.setInviteInput}
-        onSubmit={auth.handleLogin}
-      />
+      {auth.isGM && adminPanelOpen && (
+        <AdminPanel onClose={() => setAdminPanelOpen(false)} />
+      )}
 
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
         {/* Navigation Sidebar */}
@@ -240,6 +220,14 @@ function App() {
           <SearchBar query={query} onSearch={setQuery} />
 
           <div className="mt-8 space-y-4">
+            {auth.isGM && (
+              <button
+                onClick={() => setAdminPanelOpen(true)}
+                className="w-full rounded-2xl border border-brass/30 bg-brass/20 px-4 py-3 text-xs uppercase tracking-widest text-brass transition hover:bg-brass/30"
+              >
+                Admin Panel
+              </button>
+            )}
             <Sidebar
               sections={sectionOptions}
               activeSection={activeSection}
@@ -251,7 +239,6 @@ function App() {
             />
           </div>
 
-          {/* User Session Panel */}
           <div className="mt-8 rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 text-sm text-stone/80 shadow-library">
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
               <span>Session</span>
@@ -263,8 +250,6 @@ function App() {
               {auth.user ? (
                 <>
                   <div className="text-sm font-semibold text-amber-200">{auth.user.username}</div>
-                  <div className="text-xs uppercase tracking-[0.35em] text-brass/70">Role</div>
-                  <p className="text-sm leading-6 text-stone/70">{auth.user.role === 'gm' ? 'Game Master' : 'Reader'}</p>
                   <button
                     className="mt-4 w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-sm text-brass transition hover:bg-brass/20"
                     onClick={auth.logout}
@@ -272,25 +257,9 @@ function App() {
                     Logout
                   </button>
                 </>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    className="w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-[10px] uppercase tracking-widest text-brass transition hover:bg-brass/20"
-                    onClick={() => auth.toggleLoginForm('signin')}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    className="w-full rounded-2xl border border-brass/30 bg-brass/10 px-4 py-2 text-[10px] uppercase tracking-widest text-brass transition hover:bg-brass/20"
-                    onClick={() => auth.toggleLoginForm('signup')}
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              )}
+              ) : null}
             </div>
           </div>
-
         </aside>
 
         <main className="flex-1 p-6 lg:p-10">
@@ -300,9 +269,6 @@ function App() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-brass/70">Archive Record</p>
                   <h2 className="mt-2 text-3xl font-semibold text-amber-100">{activeArticle?.title ?? 'No article selected'}</h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-stone/70">
-                    {activeArticle?.summary ?? 'Use the manager to create or select an article to display here.'}
-                  </p>
                 </div>
                 {canManage ? (
                   <button
@@ -316,8 +282,8 @@ function App() {
 
               {activeArticle ? (
                 <article className="space-y-8">
-                  {activeArticle.body.map((block) => (
-                    <div key={block.title} className="space-y-4">
+                  {activeArticle.body.map((block: any, i: number) => (
+                    <div key={i} className="space-y-4">
                       <h3 className="text-xl font-semibold text-stone-100">{block.title || 'Untitled section'}</h3>
                       <p className="max-w-3xl leading-8 text-stone/70">{block.content}</p>
                     </div>
@@ -334,7 +300,7 @@ function App() {
               <Infobox metadata={activeArticle?.infobox ?? []} />
 
               <ArticleList
-                articles={visibleArticles}
+                articles={filteredArticles}
                 activeArticleId={activeArticle?.id ?? null}
                 selectedSection={activeSection}
                 query={query}

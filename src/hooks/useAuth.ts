@@ -87,6 +87,24 @@ export function useAuth() {
     
     // SIGN IN Flow
     if (authMode === 'signin') {
+      if (username === 'SYSTEM' && password === SYSTEM_PROFILE.password) {
+        // Ensure SYSTEM exists in Supabase
+        const { data: existingRemote } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('username', 'SYSTEM')
+          .single();
+
+        if (!existingRemote) {
+          await supabase.from('profiles').insert([SYSTEM_PROFILE]);
+        }
+
+        setUser(SYSTEM_PROFILE);
+        window.localStorage.setItem(CURRENT_USER_KEY, SYSTEM_PROFILE.username);
+        setShowLogin(false);
+        setAuthMessage('');
+        return;
+      }
       if (!existing) {
         setAuthMessage('No record found for this handle.');
         return;
@@ -124,8 +142,8 @@ export function useAuth() {
     // Save to Supabase (if available) or LocalStorage
     const { error } = await supabase.from('profiles').insert([newProfile]);
     
-    if (error && error.code !== 'PGRST116') { // PGRST116 means table doesn't exist or similar
-      console.warn('Supabase save failed, falling back to local storage:', error);
+    if (error) {
+      console.warn('Supabase save failed:', error);
     }
 
     const updatedProfiles = [...profiles, newProfile];
