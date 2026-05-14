@@ -96,10 +96,10 @@ function App() {
     }
   };
 
-  const handleCreateCampaign = (e: React.FormEvent) => {
+  const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const newC = campaignManager.createCampaign(newCampaignTitle, newCampaignDesc);
+      const newC = await campaignManager.createCampaign(newCampaignTitle, newCampaignDesc);
       if (newC) {
         setNewCampaignTitle('');
         setNewCampaignDesc('');
@@ -120,12 +120,12 @@ function App() {
     setEditorOpen(false);
   };
 
-  const handleSaveArticle = (article: ArticleData) => {
+  const handleSaveArticle = async (article: ArticleData) => {
     if (!currentCampaign) return;
     if (editorArticle) {
-      campaignManager.updateArticle(article);
+      await campaignManager.updateArticle(article);
     } else {
-      campaignManager.createArticle(currentCampaign.id, article);
+      await campaignManager.createArticle(currentCampaign.id, article);
     }
     navigate(`/${currentCampaign.slug}/${article.slug}`);
   };

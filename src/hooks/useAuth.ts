@@ -1,61 +1,23 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 
-/** Storage keys for local persistence */
+/** Storage keys for local persistence (Fallback) */
 const PROFILES_KEY = 'wbw_user_profiles';
 const CURRENT_USER_KEY = 'wbw_current_user';
 const INVITE_STORAGE_KEY = 'wbw_invite_code';
 
-/**
- * Loads all known user profiles from local storage.
- */
-function loadProfiles(): UserProfile[] {
-  if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(PROFILES_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
+const SYSTEM_PROFILE: UserProfile = {
+  username: 'SYSTEM',
+  password: '7rE31]Q}DJ^Pa#b~(L8',
+  role: 'gm',
+  unlockedWikis: ['all'],
+};
 
-/**
- * Persists user profiles to local storage.
- */
-function saveProfiles(profiles: UserProfile[]) {
-  window.localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
-}
-
-/**
- * Retrieves the username of the currently logged-in user.
- */
-function loadCurrentUsername(): string | null {
-  return typeof window === 'undefined' ? null : window.localStorage.getItem(CURRENT_USER_KEY);
-}
-
-/**
- * Saves or clears the current session's username.
- */
-function saveCurrentUsername(username: string | null) {
-  if (typeof window === 'undefined') return;
-  if (username) {
-    window.localStorage.setItem(CURRENT_USER_KEY, username);
-  } else {
-    window.localStorage.removeItem(CURRENT_USER_KEY);
-  }
-}
-
-/**
- * custom hook managing authentication, session state, and diegetic access control.
- * 
- * Features:
- * - LocalStorage persistence for user profiles and sessions.
- * - Automatic "GM" role assignment for the first user created.
- * - Invite-code based "unlocking" of restricted wiki sections.
- */
 export function useAuth() {
-  const [profiles, setProfiles] = useState<UserProfile[]>(() => loadProfiles());
-  const [user, setUser] = useState<UserProfile | null>(() => {
-    const currentUsername = loadCurrentUsername();
-    if (!currentUsername) return null;
-    return loadProfiles().find((profile) => profile.username === currentUsername) ?? null;
-  });
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   
   // UI State
   const [showLogin, setShowLogin] = useState(false);
@@ -64,124 +26,137 @@ export function useAuth() {
   const [authMessage, setAuthMessage] = useState('');
   const [inviteInput, setInviteInput] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
-  
-  // Invite System State
-  const [inviteCode, setInviteCode] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem(INVITE_STORAGE_KEY) ?? '' : ''));
+  const [inviteCode, setInviteCode] = useState('');
 
-  // Synchronization with LocalStorage
+  // Initialize data
   useEffect(() => {
-    saveProfiles(profiles);
-  }, [profiles]);
+    async function initAuth() {
+      setLoading(true);
+      
+      // 1. Load profiles (Try Supabase, then localStorage)
+      let initialProfiles: UserProfile[] = [];
+      const { data: remoteProfiles } = await supabase.from('profiles').select('*');
+      
+      if (remoteProfiles && remoteProfiles.length > 0) {
+        initialProfiles = remoteProfiles;
+      } else {
+        const raw = window.localStorage.getItem(PROFILES_KEY);
+        initialProfiles = raw ? JSON.parse(raw) : [];
+      }
 
-  useEffect(() => {
-    saveCurrentUsername(user?.username ?? null);
-  }, [user]);
+      // Ensure SYSTEM is always present
+      if (!initialProfiles.find(p => p.username === 'SYSTEM')) {
+        initialProfiles.push(SYSTEM_PROFILE);
+      }
+      setProfiles(initialProfiles);
 
-  /** Toggles the visibility of the login modal */
-  const toggleLoginForm = () => {
-    setShowLogin((value) => !value);
-    setAuthMessage('');
-  };
+      // 2. Load current session
+      const currentUsername = window.localStorage.getItem(CURRENT_USER_KEY);
+      if (currentUsername) {
+        const found = initialProfiles.find(p => p.username === currentUsername);
+        if (found) setUser(found);
+      }
+
+      // 3. Load invite code
+      const storedInvite = window.localStorage.getItem(INVITE_STORAGE_KEY);
+      if (storedInvite) setInviteCode(storedInvite);
+
+      setLoading(false);
+    }
+
+    initAuth();
+  }, []);
 
   /**
    * Processes login or registration.
-   * If the username doesn't exist, a new profile is created.
-   * New registrations (Readers) now require a valid GM-issued invite code.
-   * The first registered user is automatically granted 'gm' status and bypasses invite requirements.
    */
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       setAuthMessage('Both handle and secret phrase are required.');
       return;
     }
 
     const existing = profiles.find((profile) => profile.username === username);
+    
     if (existing) {
       if (existing.password !== password) {
         setAuthMessage('Incorrect secret phrase.');
         return;
       }
       setUser(existing);
+      window.localStorage.setItem(CURRENT_USER_KEY, existing.username);
       setShowLogin(false);
       setAuthMessage('');
       return;
     }
 
-    // Diegetic Role Assignment: The first person to access the terminal is the GM
-    const isFirstUser = profiles.length === 0;
-    
-    // Check for invite code if not the first user
-    if (!isFirstUser) {
-      const stored = window.localStorage.getItem(INVITE_STORAGE_KEY);
-      if (!stored || inviteInput.trim().toUpperCase() !== stored) {
-        setAuthMessage('A valid invite code is required to create a new profile.');
-        return;
-      }
+    // Registration logic
+    const storedInvite = window.localStorage.getItem(INVITE_STORAGE_KEY);
+    if (!storedInvite || inviteInput.trim().toUpperCase() !== storedInvite) {
+      setAuthMessage('A valid Access Key is required to establish a new profile record.');
+      return;
     }
 
-    const role = isFirstUser ? 'gm' : 'reader';
-    const profile: UserProfile = {
+    const newProfile: UserProfile = {
       username,
       password,
-      role,
+      role: 'reader',
       unlockedWikis: [],
     };
-    setProfiles((current) => [...current, profile]);
-    setUser(profile);
+
+    // Save to Supabase (if available) or LocalStorage
+    const { error } = await supabase.from('profiles').insert([newProfile]);
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 means table doesn't exist or similar
+      console.warn('Supabase save failed, falling back to local storage:', error);
+    }
+
+    const updatedProfiles = [...profiles, newProfile];
+    setProfiles(updatedProfiles);
+    window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
+    
+    setUser(newProfile);
+    window.localStorage.setItem(CURRENT_USER_KEY, newProfile.username);
     setShowLogin(false);
     setAuthMessage('');
     setInviteInput('');
   };
 
-  /** Clears the current session */
   const logout = () => {
     setUser(null);
     setShowLogin(false);
     setAuthMessage('');
   };
 
-  /**
-   * Generates a random invite code to be shared with players.
-   * This is part of the worldbuilding, representing "clearance codes" or "access keys".
-   */
   const generateInviteCode = (wikiId: string) => {
     const code = `${wikiId.toUpperCase().slice(0, 3)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
     window.localStorage.setItem(INVITE_STORAGE_KEY, code);
     setInviteCode(code);
-    setInviteMessage(`Invite code generated: ${code}`);
+    setInviteMessage(`Access Key generated: ${code}`);
     return code;
   };
 
-  /**
-   * Unlocks a specific wiki section for the current user using an invite code.
-   * Simulates the process of gaining clearance to redacted files.
-   */
   const unlockWiki = (wikiId: string) => {
     if (!user) {
-      setInviteMessage('You must sign in before unlocking a gated wiki.');
+      setInviteMessage('Sign-in required to unlock archive sections.');
       return false;
     }
 
     const stored = window.localStorage.getItem(INVITE_STORAGE_KEY);
-    if (!stored) {
-      setInviteMessage('No invite code has been generated yet.');
-      return false;
-    }
-
-    if (inviteInput.trim().toUpperCase() !== stored) {
-      setInviteMessage('That invite code does not match.');
+    if (!stored || inviteInput.trim().toUpperCase() !== stored) {
+      setInviteMessage('Invalid Access Key.');
       return false;
     }
 
     if (user.unlockedWikis.includes(wikiId)) {
-      setInviteMessage('This wiki is already unlocked.');
+      setInviteMessage('This section is already accessible.');
       return true;
     }
 
     const updatedUser = { ...user, unlockedWikis: [...user.unlockedWikis, wikiId] };
     setUser(updatedUser);
     setProfiles((current) => current.map((profile) => (profile.username === updatedUser.username ? updatedUser : profile)));
-    setInviteMessage('The archive has been unlocked.');
+    setInviteMessage('Archive clearance granted.');
     setInviteInput('');
     return true;
   };

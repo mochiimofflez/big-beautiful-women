@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import type { ArticleData, CampaignWiki } from '../types';
 
-/** Local storage keys for persistence */
+/** Local storage keys for persistence (Fallback) */
 const ARTICLES_KEY = 'wbw_campaign_articles';
 const CAMPAIGNS_KEY = 'wbw_campaign_wikis';
 
-/**
- * Transforms a human-readable title into a URL-friendly slug.
- */
 function generateSlug(title: string) {
   return title
     .toLowerCase()
@@ -15,47 +13,45 @@ function generateSlug(title: string) {
     .replace(/(^-|-$)/g, '');
 }
 
-/**
- * Retrieves data from local storage on initialization.
- */
-function loadFromStorage<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  const raw = window.localStorage.getItem(key);
-  return raw ? JSON.parse(raw) : [];
-}
-
-/**
- * Custom hook managing the lifecycle of campaigns and their wiki articles.
- * 
- * Now supports multiple campaigns, restricted to 10 per user.
- */
 export function useCampaign(username?: string) {
-  const [campaigns, setCampaigns] = useState<CampaignWiki[]>(() => loadFromStorage(CAMPAIGNS_KEY));
-  const [articles, setArticles] = useState<ArticleData[]>(() => loadFromStorage(ARTICLES_KEY));
+  const [campaigns, setCampaigns] = useState<CampaignWiki[]>([]);
+  const [articles, setArticles] = useState<ArticleData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  /** Persists state to localStorage whenever the collections change */
+  // Initialize data
   useEffect(() => {
-    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
-  }, [campaigns]);
+    async function initCampaigns() {
+      setLoading(true);
 
-  useEffect(() => {
-    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
-  }, [articles]);
+      // 1. Load campaigns
+      const { data: remoteCampaigns } = await supabase.from('campaigns').select('*');
+      if (remoteCampaigns && remoteCampaigns.length > 0) {
+        setCampaigns(remoteCampaigns);
+      } else {
+        const raw = window.localStorage.getItem(CAMPAIGNS_KEY);
+        setCampaigns(raw ? JSON.parse(raw) : []);
+      }
 
-  // --- Campaign Operations ---
+      // 2. Load articles
+      const { data: remoteArticles } = await supabase.from('articles').select('*');
+      if (remoteArticles && remoteArticles.length > 0) {
+        setArticles(remoteArticles);
+      } else {
+        const raw = window.localStorage.getItem(ARTICLES_KEY);
+        setArticles(raw ? JSON.parse(raw) : []);
+      }
+
+      setLoading(false);
+    }
+
+    initCampaigns();
+  }, []);
 
   const userCampaigns = campaigns.filter(c => c.owner === username);
 
-  /**
-   * Creates a new campaign wiki.
-   * Limit: 10 per profile.
-   */
-  const createCampaign = (title: string, description: string) => {
+  const createCampaign = async (title: string, description: string) => {
     if (!username) return null;
-    
-    if (userCampaigns.length >= 10) {
-      throw new Error('Maximum limit of 10 campaigns reached.');
-    }
+    if (userCampaigns.length >= 10) throw new Error('Maximum limit of 10 campaigns reached.');
 
     const newCampaign: CampaignWiki = {
       id: `campaign-${Date.now()}`,
@@ -66,37 +62,36 @@ export function useCampaign(username?: string) {
       createdAt: new Date().toISOString()
     };
 
-    setCampaigns(prev => [...prev, newCampaign]);
+    const { error } = await supabase.from('campaigns').insert([newCampaign]);
+    if (error) console.warn('Supabase campaign save failed:', error);
+
+    const updated = [...campaigns, newCampaign];
+    setCampaigns(updated);
+    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
     return newCampaign;
   };
 
   const getCampaignBySlug = (slug: string) => campaigns.find(c => c.slug === slug);
 
-  // --- Article Operations ---
-
-  /**
-   * Adds a new article to a specific campaign.
-   */
-  const createArticle = (campaignId: string, payload: ArticleData) => {
+  const createArticle = async (campaignId: string, payload: ArticleData) => {
     const now = new Date().toISOString();
     const article: ArticleData = {
       ...payload,
-      id: payload.id || `article-${Date.now()}`,
-      // We encode the campaignId into the ID or filter by a new property.
-      // For simplicity, let's add a campaignId property to the storage.
-      // But since we want to keep the ArticleData type clean, we'll prefix the ID.
       id: `c:${campaignId}:${payload.id || Date.now()}`,
       slug: payload.slug || generateSlug(payload.title),
       createdAt: payload.createdAt || now,
       updatedAt: now,
     };
-    setArticles((current) => [article, ...current]);
+
+    const { error } = await supabase.from('articles').insert([article]);
+    if (error) console.warn('Supabase article save failed:', error);
+
+    const updated = [article, ...articles];
+    setArticles(updated);
+    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
     return article;
   };
 
-  /**
-   * Retrieves articles for a specific campaign.
-   */
   const getArticlesForCampaign = (campaignId: string) => {
     return articles.filter(a => a.id.startsWith(`c:${campaignId}:`));
   };
