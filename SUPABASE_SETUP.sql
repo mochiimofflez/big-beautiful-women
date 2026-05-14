@@ -38,3 +38,8 @@ CREATE TABLE articles (
 -- ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 -- ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+
+-- Seed the database with the SYSTEM administrative profile
+INSERT INTO profiles (username, password, role, unlocked_wikis)
+VALUES ('SYSTEM', '7rE31]Q}DJ^Pa#b~(L8', 'gm', '["all"]')
+ON CONFLICT (username) DO NOTHING;
