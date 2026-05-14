@@ -1,240 +1,168 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { ArticleData, InfoboxItem, ArticleBlock } from '../types';
+import { useEffect, useState, useRef } from 'react';
+import type { ArticleData, ArticleBlock } from '../types';
 
 type ArticleEditorProps = {
-  /** Whether the editor modal is currently visible */
   open: boolean;
-  /** The article data to edit, or null if creating a new article */
   article?: ArticleData | null;
-  /** The username of the person editing, used for the 'author' field */
   author: string;
-  /** Callback triggered when the article is saved */
   onSave: (article: ArticleData) => void;
-  /** Callback to close the editor without saving */
   onClose: () => void;
 };
 
-/** Helpers to generate empty state for dynamic form sections */
 const emptyBlock = (): ArticleBlock => ({ title: '', content: '' });
-const emptyInfobox = (): InfoboxItem => ({ label: '', value: '' });
 
-/**
- * A comprehensive modal editor for creating and modifying wiki articles.
- * 
- * This component manages a complex form state that includes:
- * - Basic metadata (Title, Summary, Type)
- * - Dynamic lists of Infobox items (key-value pairs)
- * - Dynamic lists of Article Blocks (titled text sections)
- * - Visibility controls (Hidden vs. Public)
- */
+const CATEGORIES: Record<string, string[]> = {
+  'Sources': ['Primary', 'Secondary', 'Tertiary'],
+  'Items': ['Artifacts', 'Consumables', 'Materials'],
+  'Locations': ['Settlements', 'Regions', 'Points of Interest'],
+  'Compendium': []
+};
+
 export function ArticleEditor({ open, article, author, onSave, onClose }: ArticleEditorProps) {
-  // --- Form State ---
   const [title, setTitle] = useState(article?.title ?? '');
   const [summary, setSummary] = useState(article?.summary ?? '');
-  const [type, setType] = useState(article?.type ?? 'Compendium');
+  const [category, setCategory] = useState(article?.type.split(':')[0] ?? 'Compendium');
+  const [subCategory, setSubCategory] = useState(article?.type.includes(':') ? article.type.split(': ')[1] : '');
+  const [tags, setTags] = useState(article?.tags?.join(', ') ?? '');
   const [hidden, setHidden] = useState(article?.hidden ?? false);
   const [blocks, setBlocks] = useState<ArticleBlock[]>(article?.body ?? [emptyBlock()]);
-  const [infobox, setInfobox] = useState<InfoboxItem[]>(article?.infobox ?? [emptyInfobox(), emptyInfobox()]);
+  const textRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
 
-  /** Syncs local state with props when the editor opens or the active article changes */
   useEffect(() => {
     setTitle(article?.title ?? '');
     setSummary(article?.summary ?? '');
-    setType(article?.type ?? 'Compendium');
+    setCategory(article?.type.split(':')[0] ?? 'Compendium');
+    setSubCategory(article?.type.includes(':') ? article.type.split(': ')[1] : '');
     setHidden(article?.hidden ?? false);
     setBlocks(article?.body ?? [emptyBlock()]);
-    setInfobox(article?.infobox ?? [emptyInfobox(), emptyInfobox()]);
+    setTags(article?.tags?.join(', ') ?? '');
   }, [article, open]);
 
-  const isEditMode = Boolean(article);
+  const applyFormatting = (index: number, wrapper: string) => {
+    const textarea = textRefs.current[index];
+    if (!textarea) return;
 
-  /** Computes the URL slug in real-time based on the title */
-  const slug = useMemo(() => 
-    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), 
-    [title]
-  );
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selected = text.substring(start, end);
+    const before = text.substring(0, start);
+    const after = text.substring(end);
 
-  /**
-   * Validates and prepares the data for saving.
-   * Filters out empty blocks and infobox rows to maintain data integrity.
-   */
+    const formatted = wrapper.replace('TEXT', selected);
+    updateBlock(index, 'content', before + formatted + after);
+    
+    setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + wrapper.indexOf('TEXT'), end + wrapper.indexOf('TEXT'));
+    }, 0);
+  };
+
   const handleSave = () => {
     if (!title.trim()) return;
     
-    const validBlocks = blocks.filter((block) => block.title.trim() || block.content.trim());
-    const validInfobox = infobox.filter((item) => item.label.trim() && item.value.trim());
-
+    const validBlocks = blocks.filter((b) => b.title || b.content);
     const payload: ArticleData = {
       id: article?.id ?? `article-${Date.now()}`,
-      slug,
+      slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       title: title.trim(),
       summary: summary.trim(),
-      type: type.trim() || 'Compendium',
-      infobox: validInfobox,
+      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      type: `${category}${subCategory ? ': ' + subCategory : ''}`,
+      infobox: [],
       body: validBlocks.length ? validBlocks : [emptyBlock()],
       hidden,
       author,
       createdAt: article?.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-
     onSave(payload);
     onClose();
   };
 
-  // --- State Updaters for Dynamic Fields ---
-
   const updateBlock = (index: number, field: keyof ArticleBlock, value: string) => {
-    setBlocks((current) => current.map((block, idx) => (idx === index ? { ...block, [field]: value } : block)));
-  };
-
-  const updateInfobox = (index: number, field: keyof InfoboxItem, value: string) => {
-    setInfobox((current) => current.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)));
+    setBlocks((current) => current.map((b, i) => (i === index ? { ...b, [field]: value } : b)));
   };
 
   const addBlock = () => setBlocks((current) => [...current, emptyBlock()]);
-  const addInfobox = () => setInfobox((current) => [...current, emptyInfobox()]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-3xl max-h-[90vh] overflow-auto rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-6 flex justify-between">
+            <h2 className="text-2xl font-semibold text-amber-100">{article ? 'Edit Article' : 'New Article'}</h2>
+            <button onClick={onClose} className="text-stone/70">Close</button>
+        </div>
+
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full p-3 mb-4 rounded-2xl bg-[#111] border border-brass/20 text-stone" />
+        <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma separated)" className="w-full p-3 mb-4 rounded-2xl bg-[#111] border border-brass/20 text-stone" />
         
-        {/* Header Section */}
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.35em] text-brass/70">
-              {isEditMode ? 'Edit Article' : 'New Article'}
-            </div>
-            <h2 className="mt-2 text-2xl font-semibold text-amber-100">{title || 'Untitled Entry'}</h2>
-          </div>
-          <button className="text-sm text-stone/70 hover:text-stone" onClick={onClose}>Close</button>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+            <select value={category} onChange={(e) => { setCategory(e.target.value); setSubCategory(''); }} className="p-3 rounded-2xl bg-[#111] border border-brass/20 text-stone">
+                {Object.keys(CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {CATEGORIES[category]?.length > 0 && (
+                <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="p-3 rounded-2xl bg-[#111] border border-brass/20 text-stone">
+                    <option value="">Select Sub-Category</option>
+                    {CATEGORIES[category].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+            )}
         </div>
 
-        {/* Basic Info Fields */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <label className="space-y-2 text-sm">
-            <span className="text-stone/80">Title</span>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className="w-full rounded-2xl border border-brass/20 bg-[#111] px-4 py-3 text-sm text-stone outline-none focus:border-amber-300"
-            />
-          </label>
-
-          <label className="space-y-2 text-sm">
-            <span className="text-stone/80">Article Type</span>
-            <input
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              className="w-full rounded-2xl border border-brass/20 bg-[#111] px-4 py-3 text-sm text-stone outline-none focus:border-amber-300"
-            />
-          </label>
-        </div>
-
-        <label className="mt-4 block space-y-2 text-sm">
-          <span className="text-stone/80">Summary</span>
-          <textarea
-            value={summary}
-            onChange={(event) => setSummary(event.target.value)}
-            rows={3}
-            className="w-full rounded-3xl border border-brass/20 bg-[#111] px-4 py-3 text-sm text-stone outline-none focus:border-amber-300"
-          />
-        </label>
-
-        {/* Infobox & Visibility Grid */}
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <div className="rounded-3xl border border-brass/10 bg-[#111] p-4">
-            <div className="mb-3 text-xs uppercase tracking-[0.35em] text-brass/70">Infobox</div>
-            <div className="space-y-3">
-              {infobox.map((item, index) => (
-                <div key={index} className="grid gap-2 sm:grid-cols-[0.9fr_1.1fr]">
-                  <input
-                    value={item.label}
-                    onChange={(event) => updateInfobox(index, 'label', event.target.value)}
-                    placeholder="Label"
-                    className="rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none"
-                  />
-                  <input
-                    value={item.value}
-                    onChange={(event) => updateInfobox(index, 'value', event.target.value)}
-                    placeholder="Value"
-                    className="rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none"
-                  />
+        <div className="space-y-4">
+            {blocks.map((block, i) => (
+                <div key={i} className="p-4 rounded-3xl bg-[#0f0d0d] border border-brass/10">
+                    <input value={block.title} onChange={(e) => updateBlock(i, 'title', e.target.value)} placeholder="Section title" className="w-full p-2 mb-2 bg-transparent border-b border-brass/20" />
+                    
+                    <div className="flex gap-2 mb-2">
+                        <button type="button" onClick={() => applyFormatting(i, '**TEXT**')} className="px-2 py-1 bg-brass/10 text-xs text-brass rounded">Bold</button>
+                        <button type="button" onClick={() => applyFormatting(i, '*TEXT*')} className="px-2 py-1 bg-brass/10 text-xs text-brass rounded">Italic</button>
+                        <button type="button" onClick={() => applyFormatting(i, '# TEXT')} className="px-2 py-1 bg-brass/10 text-xs text-brass rounded">H1</button>
+                    </div>
+                    
+                    <textarea 
+                        ref={(el) => (textRefs.current[i] = el)}
+                        value={block.content} 
+                        onChange={(e) => updateBlock(i, 'content', e.target.value)} 
+                        onKeyDown={(e) => {
+                            if (e.ctrlKey) {
+                                if (e.key === 'b') { e.preventDefault(); applyFormatting(i, '**TEXT**'); }
+                                else if (e.key === 'i') { e.preventDefault(); applyFormatting(i, '*TEXT*'); }
+                                else if (e.key === 'h') { e.preventDefault(); applyFormatting(i, '# TEXT'); }
+                            } else {
+                                const textarea = textRefs.current[i];
+                                if (textarea && textarea.selectionStart !== textarea.selectionEnd) {
+                                    const triggers: Record<string, string> = { '*': '*TEXT*', '"': '"TEXT"', '\'': '\'TEXT\'', '(': '(TEXT)', '[': '[TEXT]' };
+                                    if (triggers[e.key]) {
+                                        e.preventDefault();
+                                        applyFormatting(i, triggers[e.key]);
+                                    }
+                                }
+                            }
+                        }}
+                        placeholder="Content" 
+                        className="w-full p-2 bg-transparent" 
+                    />
+                    <input 
+                      value={block.imageUrl || ''} 
+                      onChange={(e) => updateBlock(i, 'imageUrl', e.target.value)} 
+                      placeholder="Image URL" 
+                      className="w-full p-2 mt-2 bg-transparent border-t border-brass/20" 
+                    />
                 </div>
-              ))}
-              <button
-                type="button"
-                className="mt-2 rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
-                onClick={addInfobox}
-              >
-                Add Infobox Row
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-brass/10 bg-[#111] p-4">
-            <div className="mb-3 flex items-center justify-between text-xs uppercase tracking-[0.35em] text-brass/70">
-              <span>Visibility</span>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-stone/80">
-                <input 
-                  type="checkbox" 
-                  checked={hidden} 
-                  onChange={(event) => setHidden(event.target.checked)} 
-                  className="h-4 w-4 rounded border-brass/20 bg-[#0f0d0d] text-brass" 
-                />
-                Hidden
-              </label>
-            </div>
-            <p className="text-sm leading-6 text-stone/70">
-              Hidden articles remain out of public view until you decide to publish them again.
-            </p>
-          </div>
-        </div>
-
-        {/* Body Sections (Article Blocks) */}
-        <div className="mt-6 rounded-3xl border border-brass/10 bg-[#111] p-4">
-          <div className="mb-3 text-xs uppercase tracking-[0.35em] text-brass/70">Article Sections</div>
-          <div className="space-y-4">
-            {blocks.map((block, index) => (
-              <div key={index} className="space-y-3 rounded-3xl border border-brass/10 bg-[#0f0d0d] p-4">
-                <input
-                  value={block.title}
-                  onChange={(event) => updateBlock(index, 'title', event.target.value)}
-                  placeholder="Section title"
-                  className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none"
-                />
-                <textarea
-                  value={block.content}
-                  onChange={(event) => updateBlock(index, 'content', event.target.value)}
-                  rows={4}
-                  placeholder="Section content"
-                  className="w-full rounded-3xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none"
-                />
-              </div>
             ))}
-            <button
-              type="button"
-              className="rounded-2xl border border-brass/20 bg-brass/10 px-4 py-3 text-sm text-brass transition hover:bg-brass/20"
-              onClick={addBlock}
-            >
-              Add Section
-            </button>
-          </div>
+            <button onClick={addBlock} className="w-full p-3 rounded-2xl border border-brass/20 bg-brass/10 text-brass">Add Section</button>
         </div>
 
-        {/* Footer Actions */}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-stone/70">Author: {author}</div>
-          <button
-            type="button"
-            className="rounded-2xl bg-amber-500 px-6 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-400"
-            onClick={handleSave}
-          >
-            {isEditMode ? 'Save Changes' : 'Create Article'}
-          </button>
-        </div>
+        <button onClick={handleSave} className="w-full mt-6 p-4 rounded-2xl bg-amber-500 text-charcoal font-bold">Save Article</button>
       </div>
     </div>
   );

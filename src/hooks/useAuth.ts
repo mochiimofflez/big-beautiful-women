@@ -178,6 +178,19 @@ export function useAuth() {
     return true;
   };
 
+  const updateAvatar = (url: string) => {
+    if (!user) return;
+    const updatedUser = { ...user, avatarUrl: url };
+    setUser(updatedUser);
+    
+    // Persist to localStorage
+    const savedProfiles = JSON.parse(window.localStorage.getItem(PROFILES_KEY) || '[]');
+    const updatedProfiles = savedProfiles.map((p: UserProfile) => 
+        p.username === updatedUser.username ? updatedUser : p
+    );
+    window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
+  };
+
   return {
     user,
     showLogin,
@@ -190,6 +203,7 @@ export function useAuth() {
     authMessage,
     unlockedWikis: user?.unlockedWikis ?? [],
     isGM: user?.role === 'gm',
+    isGuest: user?.role === 'guest',
     setUsername,
     setPassword,
     setInviteInput,
@@ -200,6 +214,7 @@ export function useAuth() {
     logout,
     generateInviteCode,
     unlockWiki,
+    updateAvatar,
     setAuthMessage,
   };
 }

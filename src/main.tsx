@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import App from './App';
+import { App } from './App';
 import './index.css';
 
 /**
@@ -11,16 +11,7 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <HashRouter>
-      <Routes>
-        {/* Home: Campaign Repository Hub */}
-        <Route path="/" element={<App />} />
-        
-        {/* Campaign Landing Page */}
-        <Route path="/:campaignSlug" element={<App />} />
-        
-        {/* Specific Wiki Article Page */}
-        <Route path="/:campaignSlug/:articleSlug" element={<App />} />
-      </Routes>
+      <App />
     </HashRouter>
   </React.StrictMode>
 );

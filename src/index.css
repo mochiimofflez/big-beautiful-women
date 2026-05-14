@@ -33,6 +33,12 @@ textarea {
   color: #f8f1e6;
 }
 
-.tooltip-card {
-  transform: translateY(8px);
+.parchment {
+  background-color: #e6dcc5;
+  background-image: url("https://www.transparenttextures.com/patterns/old-paper.png");
+  color: #3e3322;
+  border: 1px solid #c9b794;
+  padding: 2rem;
+  border-radius: 4px;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
 }

@@ -112,7 +112,11 @@ export function ArticleList({
                 </button>
                 <button
                   className="rounded-2xl border border-red-700/20 bg-red-900/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-red-300 transition hover:bg-red-900/20"
-                  onClick={() => onDelete(article.id)}
+                  onClick={() => {
+                    if (canManage && window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
+                        onDelete(article.id);
+                    }
+                  }}
                 >
                   Delete
                 </button>
