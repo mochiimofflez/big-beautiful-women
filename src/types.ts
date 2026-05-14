@@ -80,6 +80,9 @@ export type ArticleData = {
   updatedAt: string;
   /** The username of the person who created/edited the article */
   author: string;
+  category: 'Primary Source' | 'Compendium' | 'Meta-Story';
+  status: 'draft' | 'pending' | 'published';
+  layout_data: { frames: any[] };
 };
 
 /**
