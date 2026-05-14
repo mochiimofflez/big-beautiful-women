@@ -125,7 +125,14 @@ export function WikiView() {
                 <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className="h-10 w-10 rounded-full object-cover" />
                 <span className="text-stone font-medium">{auth.user.username}</span>
               </Link>
+              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-stone hover:text-brass">•••</button>
             </div>
+            {isMenuOpen && (
+                <div className="absolute top-16 left-0 w-full bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-10">
+                    <button className="block w-full text-left p-2 hover:bg-brass/10 rounded">Settings</button>
+                    <button onClick={() => { auth.logout(); navigate('/'); }} className="block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded">Logout</button>
+                </div>
+            )}
           </div>
         )}
         <Link to="/" className="block mb-6 text-xs uppercase tracking-[0.35em] text-brass/70">Grand Library</Link>
