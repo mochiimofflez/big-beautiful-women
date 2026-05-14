@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useCampaign } from '../hooks/useCampaign';
 import { ADMIN_USERNAMES } from '../lib/adminList';
+import { CampaignWiki } from '../types';
 
 export function AdminPage() {
   const auth = useAuth();
@@ -21,7 +23,7 @@ export function AdminPage() {
       {invite && <p className="mb-6">New Code: {invite}</p>}
 
       <h2 className="text-xl font-bold mb-4">Archived Campaigns</h2>
-      {campaignManager.archivedCampaigns.map(c => (
+      {campaignManager.archivedCampaigns.map((c: CampaignWiki) => (
         <div key={c.id} className="flex justify-between p-4 border border-brass/20 rounded mb-2">
             <span>{c.title} (Deleted: {new Date(c.deletedAt!).toLocaleDateString()})</span>
             <button onClick={() => campaignManager.restoreCampaign(c.id)} className="text-brass">Restore</button>
