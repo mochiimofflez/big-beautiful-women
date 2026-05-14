@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aztir Federation | Vector Fix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0a0a0a; color: #e7e5e4; font-family: 'EB Garamond', serif; overflow: hidden; }
+        .no-select { user-select: none; -webkit-user-select: none; }
+
+        .collage-frame {
+            border: 1px solid #333; min-height: 40px;
+            background: rgba(20, 20, 20, 0.6); position: absolute;
+            box-sizing: border-box; transition: border-color 0.2s;
+        }
+        
+        .active-target { border: 2px solid #d97706 !important; background: rgba(217, 119, 6, 0.1) !important; }
+        .active-target::after {
+            content: "DOCK"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'JetBrains Mono'; font-size: 10px; color: #d97706; background: #000; padding: 4px 8px; border: 1px solid #d97706; z-index: 1000;
+        }
+
+        .collage-frame .collage-frame { background: rgba(30, 30, 30, 0.4); border-style: dashed; }
+        .locked.collage-frame { border-color: transparent !important; background-color: transparent !important; pointer-events: none; }
+        .locked.collage-frame * { pointer-events: auto; }
+        
+        .gm-widget { position: absolute; display: flex; flex-direction: column; box-sizing: border-box; background: #111; border: 1px solid #222; padding: 10px; }
+        .handle { cursor: grab; font-family: 'JetBrains Mono'; font-size: 9px; color: #555; background: #181818; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+        .resizer { position: absolute; z-index: 50; bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; background: #d97706; opacity: 0.2; }
+
+        .mode-viewer .handle, .mode-viewer .resizer { display: none !important; }
+        .dots-btn { cursor: pointer; color: #d97706; font-size: 14px; }
+
+        #property-plate { 
+            display: none; position: fixed; z-index: 9999; background: #0f0f0f; 
+            border: 1px solid #d97706; padding: 15px; min-width: 260px; box-shadow: 15px 15px 40px rgba(0,0,0,0.8);
+        }
+        .plate-label { font-family: 'JetBrains Mono'; font-size: 8px; color: #555; text-transform: uppercase; display: block; margin-bottom: 2px; }
+        .plate-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .plate-input { background: #000; border: 1px solid #222; color: #d97706; font-size: 11px; width: 100%; padding: 4px; font-family: 'JetBrains Mono'; outline: none; }
+
+        aside { width: 280px; background: #050505; border-right: 1px solid #1a1a1a; padding: 25px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #222; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 4px; bottom: 4px; background-color: #444; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #d97706; }
+        input:checked + .slider:before { transform: translateX(20px); background-color: white; }
+        textarea { width: 100%; background: transparent; color: #bbb; outline: none; resize: none; border: none; font-size: 14px; }
+        
+        #context-menu { display: none; position: fixed; z-index: 10000; background: #111; border: 1px solid #d97706; min-width: 160px; }
+        .menu-item { padding: 10px 15px; font-size: 11px; font-family: 'JetBrains Mono'; color: #888; cursor: pointer; text-transform: uppercase; border-bottom: 1px solid #1a1a1a; }
+        .menu-item:hover { background: #d97706; color: #000; }
+    </style>
+</head>
+<body class="flex h-screen no-select mode-viewer" onclick="closeAllMenus()">
+
+    <div id="property-plate" onclick="event.stopPropagation()">
+        <h3 class="font-cinzel text-[10px] text-stone-500 mb-4 border-b border-stone-800 pb-2">Vector Size {S1, S2, P1, P2}</h3>
+        <div class="plate-group">
+            <div><span class="plate-label">Scale W</span><input type="number" step="0.1" id="in-sw" class="plate-input" oninput="manualVectorUpdate()"></div>
+            <div><span class="plate-label">Pixel W</span><input type="number" id="in-pw" class="plate-input" oninput="manualVectorUpdate()"></div>
+        </div>
+        <div class="plate-group">
+            <div><span class="plate-label">Scale H</span><input type="number" step="0.1" id="in-sh" class="plate-input" oninput="manualVectorUpdate()"></div>
+            <div><span class="plate-label">Pixel H</span><input type="number" id="in-ph" class="plate-input" oninput="manualVectorUpdate()"></div>
+        </div>
+        <button onclick="deleteActiveEl()" class="w-full bg-red-950/30 text-red-700 font-mono text-[9px] py-2 border border-red-900/20 mt-2">PURGE</button>
+    </div>
+
+    <div id="context-menu" onclick="event.stopPropagation()">
+        <div class="menu-item" onclick="prepareSpawn('Frame')">Add Frame</div>
+        <div class="menu-item" onclick="prepareSpawn('Text')">Add Text</div>
+    </div>
+
+    <aside class="flex flex-col">
+        <h1 class="font-cinzel text-amber-700 uppercase mb-4 text-lg">Aztir Fed.</h1>
+        <div class="bg-stone-900/20 p-4 border border-stone-800 rounded mb-4">
+            <div class="flex items-center justify-between">
+                <span class="font-mono text-[9px] text-stone-500 uppercase">Architect</span>
+                <label class="switch">
+                    <input type="checkbox" id="lock-toggle" onchange="toggleLockState()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <p class="text-stone-600 text-[10px] font-mono leading-relaxed uppercase">> Context Menu Fixed</p>
+        <p class="text-stone-600 text-[10px] font-mono leading-relaxed uppercase">> Vector Spawning Active</p>
+    </aside>
+
+    <main class="flex-1 relative overflow-auto" id="collage-root" oncontextmenu="handleGlobalContextMenu(event)">
+        <div id="entry-canvas" class="relative w-full h-[3000px]">
+            <header class="p-12 border-b border-stone-900 max-w-4xl">
+                <h2 class="font-cinzel text-4xl text-stone-200">Vector Engine</h2>
+                <p class="text-stone-600 italic mt-2 text-lg">Right-click anywhere to spawn new composite modules.</p>
+            </header>
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('entry-canvas');
+        const plate = document.getElementById('property-plate');
+        const ctxMenu = document.getElementById('context-menu');
+        
+        let activeEl = null, propEl = null, resizeEl = null;
+        let isLocked = true, startW, startH, startX, startY, dragOffsetX, dragOffsetY;
+        let lastContextX = 0, lastContextY = 0, lastContextTarget = null;
+
+        function toggleLockState() {
+            isLocked = !document.getElementById('lock-toggle').checked;
+            document.body.classList.toggle('mode-viewer', isLocked);
+            document.querySelectorAll('.collage-frame').forEach(f => f.classList.toggle('locked', isLocked));
+        }
+
+        function closeAllMenus() { plate.style.display = 'none'; ctxMenu.style.display = 'none'; }
+
+        // --- THE VECTOR ENGINE ---
+        function updateHierarchy(parent) {
+            const pW = parent.clientWidth || window.innerWidth;
+            const pH = parent.clientHeight || window.innerHeight;
+            
+            Array.from(parent.children).forEach(child => {
+                if (!child.getAttribute('data-vector-w')) return;
+                
+                const [sw, pw] = child.getAttribute('data-vector-w').split(',').map(Number);
+                const [sh, ph] = child.getAttribute('data-vector-h').split(',').map(Number);
+                const relX = parseFloat(child.getAttribute('data-rel-x')) || 0;
+                const relY = parseFloat(child.getAttribute('data-rel-y')) || 0;
+
+                child.style.width = (pW * sw + pw) + 'px';
+                child.style.height = (pH * sh + ph) + 'px';
+                child.style.left = (pW * relX) + 'px';
+                child.style.top = (pH * relY) + 'px';
+
+                if (child.classList.contains('collage-frame')) updateHierarchy(child);
+            });
+        }
+
+        function captureVector(el) {
+            const parent = el.parentElement;
+            const pW = parent.clientWidth || window.innerWidth;
+            const pH = parent.clientHeight || window.innerHeight;
+            el.setAttribute('data-vector-w', `0,${el.offsetWidth}`);
+            el.setAttribute('data-vector-h', `0,${el.offsetHeight}`);
+            el.setAttribute('data-rel-x', el.offsetLeft / pW);
+            el.setAttribute('data-rel-y', el.offsetTop / pH);
+        }
+
+        // --- INTERACTIONS ---
+        function startDrag(e, id) {
+            if (isLocked) return; e.stopPropagation();
+            activeEl = document.getElementById(id);
+            const rect = activeEl.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        function drag(e) {
+            if (!activeEl) return;
+            const parent = activeEl.parentElement;
+            const pRect = parent.getBoundingClientRect();
+            activeEl.style.left = (e.clientX - pRect.left - dragOffsetX) + 'px';
+            activeEl.style.top = (e.clientY - pRect.top - dragOffsetY) + 'px';
+
+            document.querySelectorAll('.active-target').forEach(el => el.classList.remove('active-target'));
+            activeEl.style.pointerEvents = 'none';
+            const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.collage-frame:not(.locked)');
+            activeEl.style.pointerEvents = 'auto';
+            if (target && target !== activeEl && !activeEl.contains(target)) target.classList.add('active-target');
+        }
+
+        function stopDrag(e) {
+            if (!activeEl) return;
+            activeEl.style.pointerEvents = 'none';
+            const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.collage-frame:not(.locked)');
+            activeEl.style.pointerEvents = 'auto';
+
+            if (target && target !== activeEl && !activeEl.contains(target)) {
+                const tr = target.getBoundingClientRect();
+                target.appendChild(activeEl);
+                activeEl.style.left = (e.clientX - tr.left - dragOffsetX) + 'px';
+                activeEl.style.top = (e.clientY - tr.top - dragOffsetY) + 'px';
+            } else if (activeEl.parentElement !== canvas) {
+                const cr = canvas.getBoundingClientRect();
+                canvas.appendChild(activeEl);
+                activeEl.style.left = (e.clientX - cr.left - dragOffsetX) + 'px';
+                activeEl.style.top = (e.clientY - cr.top - dragOffsetY) + 'px';
+            }
+
+            document.querySelectorAll('.active-target').forEach(el => el.classList.remove('active-target'));
+            captureVector(activeEl);
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            activeEl = null;
+        }
+
+        function startResize(e, id) {
+            if (isLocked) return; e.stopPropagation(); e.preventDefault();
+            resizeEl = document.getElementById(id);
+            const rect = resizeEl.getBoundingClientRect();
+            startW = rect.width; startH = rect.height;
+            startX = e.clientX; startY = e.clientY;
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+        }
+
+        function resize(e) {
+            if (!resizeEl) return;
+            resizeEl.style.width = Math.max(40, startW + (e.clientX - startX)) + 'px';
+            resizeEl.style.height = Math.max(30, startH + (e.clientY - startY)) + 'px';
+            if (resizeEl.classList.contains('collage-frame')) updateHierarchy(resizeEl);
+        }
+
+        function stopResize() {
+            if (resizeEl) captureVector(resizeEl);
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+            resizeEl = null;
+        }
+
+        // --- UI & SPAWNING ---
+        function handleGlobalContextMenu(e) {
+            if (isLocked) return;
+            e.preventDefault();
+            e.stopPropagation();
+            lastContextX = e.clientX;
+            lastContextY = e.clientY;
+            lastContextTarget = e.target.closest('.collage-frame');
+            
+            ctxMenu.style.display = 'block';
+            ctxMenu.style.left = e.clientX + 'px'; 
+            ctxMenu.style.top = e.clientY + 'px';
+        }
+
+        function prepareSpawn(type) {
+            spawn(type, lastContextX, lastContextY, lastContextTarget?.id);
+            closeAllMenus();
+        }
+
+        function spawn(type, x, y, parentID = null) {
+            const id = (type === 'Frame' ? 'f-' : 'w-') + Date.now();
+            const el = document.createElement('div');
+            el.id = id; 
+            const container = parentID ? document.getElementById(parentID) : canvas;
+            el.className = type === 'Frame' ? 'collage-frame' : 'gm-widget';
+            
+            const rect = container.getBoundingClientRect();
+            el.style.left = (x - rect.left) + 'px';
+            el.style.top = (y - rect.top) + 'px';
+            el.style.width = type === 'Frame' ? '300px' : '180px';
+            el.style.height = type === 'Frame' ? '120px' : '80px';
+            
+            el.innerHTML = `
+                <div class="handle" onmousedown="startDrag(event, '${id}')">
+                    <span>${type}</span><span class="dots-btn" onclick="openPlate(event, '${id}')">⋮</span>
+                </div>
+                ${type === 'Text' ? '<textarea placeholder="..."></textarea>' : ''}
+                <div class="resizer" onmousedown="startResize(event, '${id}')"></div>
+            `;
+            
+            container.appendChild(el);
+            captureVector(el); // Critical: Capture immediately after injection
+            updateHierarchy(container);
+        }
+
+        function openPlate(e, id) {
+            e.stopPropagation(); propEl = document.getElementById(id);
+            plate.style.display = 'block'; 
+            plate.style.left = Math.min(window.innerWidth - 280, e.clientX) + 'px'; 
+            plate.style.top = Math.min(window.innerHeight - 250, e.clientY) + 'px';
+            
+            const [sw, pw] = propEl.getAttribute('data-vector-w').split(',');
+            const [sh, ph] = propEl.getAttribute('data-vector-h').split(',');
+            document.getElementById('in-sw').value = sw;
+            document.getElementById('in-pw').value = pw;
+            document.getElementById('in-sh').value = sh;
+            document.getElementById('in-ph').value = ph;
+        }
+
+        function manualVectorUpdate() {
+            if (!propEl) return;
+            const sw = document.getElementById('in-sw').value || 0;
+            const pw = document.getElementById('in-pw').value || 0;
+            const sh = document.getElementById('in-sh').value || 0;
+            const ph = document.getElementById('in-ph').value || 0;
+            propEl.setAttribute('data-vector-w', `${sw},${pw}`);
+            propEl.setAttribute('data-vector-h', `${sh},${ph}`);
+            updateHierarchy(propEl.parentElement);
+        }
+
+        function deleteActiveEl() { if (propEl) { propEl.remove(); closeAllMenus(); } }
+    </script>
+</body>
+</html>
