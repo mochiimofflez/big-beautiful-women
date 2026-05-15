@@ -51,7 +51,7 @@ export function useAuth() {
       }
 
       // Ensure SYSTEM is always present
-      if (!initialProfiles.find(p => p.username === 'SYSTEM')) {
+      if (!initialProfiles.find(p => p.username.toLowerCase() === 'system')) {
         initialProfiles.push(SYSTEM_PROFILE);
       }
       setProfiles(initialProfiles);
@@ -59,7 +59,7 @@ export function useAuth() {
       // 2. Load current session
       const currentUsername = window.localStorage.getItem(CURRENT_USER_KEY);
       if (currentUsername) {
-        const found = initialProfiles.find(p => p.username === currentUsername);
+        const found = initialProfiles.find(p => p.username.toLowerCase() === currentUsername.toLowerCase());
         if (found) setUser(found);
       }
 
@@ -80,17 +80,19 @@ export function useAuth() {
   };
 
   const handleLogin = async () => {
-    if (!username || !password) {
+    const lowerUsername = username.trim().toLowerCase();
+    
+    if (!lowerUsername || !password) {
       setAuthMessage('Both handle and secret phrase are required.');
       return;
     }
 
-    const existing = profiles.find((profile) => profile.username === username);
-    console.log('Login attempt for:', username, 'Existing:', existing, 'All profiles:', profiles);
+    const existing = profiles.find((profile) => profile.username.toLowerCase() === lowerUsername);
+    console.log('Login attempt for:', lowerUsername, 'Existing:', existing);
 
     // SIGN IN Flow
     if (authMode === 'signin') {
-      if (username === 'SYSTEM' && password === SYSTEM_PROFILE.password) {
+      if (lowerUsername === 'system' && password === SYSTEM_PROFILE.password) {
         setUser(SYSTEM_PROFILE);
         window.localStorage.setItem(CURRENT_USER_KEY, SYSTEM_PROFILE.username);
         setShowLogin(false);
@@ -125,7 +127,7 @@ export function useAuth() {
     }
 
     const newProfile: UserProfile = {
-      username,
+      username: username.trim(),
       password,
       role: 'reader',
       unlockedWikis: [],
@@ -172,7 +174,7 @@ export function useAuth() {
     }
     const updatedUser = { ...user, unlockedWikis: [...user.unlockedWikis, wikiId] };
     setUser(updatedUser);
-    setProfiles((current) => current.map((profile) => (profile.username === updatedUser.username ? updatedUser : profile)));
+    setProfiles((current) => current.map((profile) => (profile.username.toLowerCase() === updatedUser.username.toLowerCase() ? updatedUser : profile)));
     setInviteMessage('Archive clearance granted.');
     setInviteInput('');
     return true;
@@ -183,7 +185,7 @@ export function useAuth() {
     const updatedUser = { ...user, avatarUrl: url };
     setUser(updatedUser);
     const savedProfiles = JSON.parse(window.localStorage.getItem(PROFILES_KEY) || '[]');
-    const updatedProfiles = savedProfiles.map((p: UserProfile) => p.username === updatedUser.username ? updatedUser : p);
+    const updatedProfiles = savedProfiles.map((p: UserProfile) => p.username.toLowerCase() === updatedUser.username.toLowerCase() ? updatedUser : p);
     window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
   };
 
