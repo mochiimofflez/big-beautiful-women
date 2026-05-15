@@ -1,4 +1,4 @@
-\import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCampaign } from '../hooks/useCampaign';
 import { useAuth } from '../hooks/useAuth';
@@ -38,13 +38,13 @@ export function Home() {
       <div className='mx-auto max-w-[1200px] space-y-12'>
         <header className='text-center space-y-4'>
           <div className='text-xs uppercase tracking-[0.4em] text-brass/70'>Grand Library Archive</div>
-          <h1 className='font-display text-5xl font-semibold text-amber-200'>Worldbuilding Repository</h1>
+          <h1 className='font-display text-5xl font-semibold text-amber-200'>Worldbuilding Repository</h1>      
           <p className='text-stone/70 max-w-2xl mx-auto'>Select a campaign wiki to explore or create a new archive record. Limit 10 per profile.</p>
         </header>
 
         <div className='grid gap-8 lg:grid-cols-2'>
           {/* Create Campaign Panel */}
-          <section className='rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library space-y-6'>
+          <section className='rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library space-y-6'>    
             <h2 className='text-2xl font-display text-amber-100'>Establish New Campaign</h2>
             <form onSubmit={handleCreateCampaign} className='space-y-4'>
               <input
@@ -85,17 +85,16 @@ export function Home() {
                   >
                     <div className='flex justify-between items-start mb-2'>
                       <h3 className='text-xl font-semibold text-amber-50 group-hover:text-amber-200 transition-colors'>{c.title}</h3>
-                      <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span>
+                      <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span> 
                     </div>
                     <p className='text-sm text-stone/70 line-clamp-2'>{c.description}</p>
                   </Link>
                 ))
-              )
-            }
+              )}
             </div>
           </section>
         </div>
       </div>
     </div>
   );
-}\
+}
