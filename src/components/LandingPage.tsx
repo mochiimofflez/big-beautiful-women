@@ -4,8 +4,13 @@ import { useAuth } from '../hooks/useAuth';
 
 export function LandingPage() {
   const auth = useAuth();
+  
+  const handleLogin = async () => {
+    await auth.handleLogin();
+  };
+
   return (
-    <div className="min-h-screen bg-[#0d0b0b] flex items-center justify-center">
+    <div className='min-h-screen bg-[#0d0b0b] flex items-center justify-center'>
       <AuthFrame
         show={true}
         mode={auth.authMode}
@@ -18,7 +23,7 @@ export function LandingPage() {
         onUsernameChange={auth.setUsername}
         onPasswordChange={auth.setPassword}
         onInviteInputChange={auth.setInviteInput}
-        onSubmit={auth.handleLogin}
+        onSubmit={handleLogin}
       />
     </div>
   );
