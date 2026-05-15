@@ -5,8 +5,16 @@ import { WikiView } from './pages/WikiView';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
+import { useAuth } from './hooks/useAuth';
+import { AuthFrame } from './components/AuthFrame';
 
 export function App() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <AuthFrame />;
+  }
+
   return (
     <Routes>
       <Route path='/' element={<LandingPage />} />
