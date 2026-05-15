@@ -1,4 +1,4 @@
-\import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 
@@ -149,7 +149,7 @@ export function useAuth() {
   };
 
   const generateInviteCode = (wikiId: string) => {
-    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); 
     window.localStorage.setItem(INVITE_STORAGE_KEY, code);
     setInviteCode(code);
     setInviteMessage('Access Key generated: ' + code);
@@ -213,4 +213,4 @@ export function useAuth() {
     updateAvatar,
     setAuthMessage,
   };
-}\
+}
