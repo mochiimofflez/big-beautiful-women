@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+\import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { UserProfile } from '../types';
 
@@ -18,9 +18,9 @@ export function useAuth() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // UI State
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(true);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -33,11 +33,11 @@ export function useAuth() {
   useEffect(() => {
     async function initAuth() {
       setLoading(true);
-      
+
       // 1. Load profiles (Try Supabase, then localStorage)
       let initialProfiles: UserProfile[] = [];
       const { data: remoteProfiles } = await supabase.from('profiles').select('*');
-      
+
       if (remoteProfiles && remoteProfiles.length > 0) {
         initialProfiles = remoteProfiles;
       } else {
@@ -74,9 +74,6 @@ export function useAuth() {
     setAuthMessage('');
   };
 
-  /**
-   * Processes login or registration.
-   */
   const handleLogin = async () => {
     if (!username || !password) {
       setAuthMessage('Both handle and secret phrase are required.');
@@ -84,21 +81,14 @@ export function useAuth() {
     }
 
     const existing = profiles.find((profile) => profile.username === username);
-    
+
     // SIGN IN Flow
     if (authMode === 'signin') {
       if (username === 'SYSTEM' && password === SYSTEM_PROFILE.password) {
-        // Ensure SYSTEM exists in Supabase
-        const { data: existingRemote } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', 'SYSTEM')
-          .single();
-
+        const { data: existingRemote } = await supabase.from('profiles').select('*').eq('username', 'SYSTEM').single();
         if (!existingRemote) {
           await supabase.from('profiles').insert([SYSTEM_PROFILE]);
         }
-
         setUser(SYSTEM_PROFILE);
         window.localStorage.setItem(CURRENT_USER_KEY, SYSTEM_PROFILE.username);
         setShowLogin(false);
@@ -120,7 +110,7 @@ export function useAuth() {
       return;
     }
 
-    // SIGN UP Flow (Registration)
+    // SIGN UP Flow
     if (existing) {
       setAuthMessage('This handle is already recorded in the archive.');
       return;
@@ -139,9 +129,7 @@ export function useAuth() {
       unlockedWikis: [],
     };
 
-    // Save to Supabase (if available) or LocalStorage
     const { error } = await supabase.from('profiles').insert([newProfile]);
-    
     if (error) {
       console.warn('Supabase save failed:', error);
     }
@@ -149,7 +137,7 @@ export function useAuth() {
     const updatedProfiles = [...profiles, newProfile];
     setProfiles(updatedProfiles);
     window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
-    
+
     setUser(newProfile);
     window.localStorage.setItem(CURRENT_USER_KEY, newProfile.username);
     setShowLogin(false);
@@ -159,15 +147,15 @@ export function useAuth() {
 
   const logout = () => {
     setUser(null);
-    setShowLogin(false);
+    setShowLogin(true);
     setAuthMessage('');
   };
 
   const generateInviteCode = (wikiId: string) => {
-    const code = `${wikiId.toUpperCase().slice(0, 3)}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
     window.localStorage.setItem(INVITE_STORAGE_KEY, code);
     setInviteCode(code);
-    setInviteMessage(`Access Key generated: ${code}`);
+    setInviteMessage('Access Key generated: ' + code);
     return code;
   };
 
@@ -176,18 +164,15 @@ export function useAuth() {
       setInviteMessage('Sign-in required to unlock archive sections.');
       return false;
     }
-
     const stored = window.localStorage.getItem(INVITE_STORAGE_KEY);
     if (!stored || inviteInput.trim().toUpperCase() !== stored) {
       setInviteMessage('Invalid Access Key.');
       return false;
     }
-
     if (user.unlockedWikis.includes(wikiId)) {
       setInviteMessage('This section is already accessible.');
       return true;
     }
-
     const updatedUser = { ...user, unlockedWikis: [...user.unlockedWikis, wikiId] };
     setUser(updatedUser);
     setProfiles((current) => current.map((profile) => (profile.username === updatedUser.username ? updatedUser : profile)));
@@ -200,12 +185,8 @@ export function useAuth() {
     if (!user) return;
     const updatedUser = { ...user, avatarUrl: url };
     setUser(updatedUser);
-    
-    // Persist to localStorage
     const savedProfiles = JSON.parse(window.localStorage.getItem(PROFILES_KEY) || '[]');
-    const updatedProfiles = savedProfiles.map((p: UserProfile) => 
-        p.username === updatedUser.username ? updatedUser : p
-    );
+    const updatedProfiles = savedProfiles.map((p: UserProfile) => p.username === updatedUser.username ? updatedUser : p);
     window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
   };
 
@@ -235,4 +216,4 @@ export function useAuth() {
     updateAvatar,
     setAuthMessage,
   };
-}
+}\
