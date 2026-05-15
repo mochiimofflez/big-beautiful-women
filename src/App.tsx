@@ -1,4 +1,4 @@
-\import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { LandingPage } from './components/LandingPage';
 import { Home } from './pages/Home';
 import { WikiView } from './pages/WikiView';
@@ -19,4 +19,4 @@ export function App() {
       <Route path='/Admin' element={<AdminPage />} />
     </Routes>
   );
-}\
+}
