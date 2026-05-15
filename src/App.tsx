@@ -1,20 +1,12 @@
-import { Routes, Route } from 'react-router-dom';
+\import { Routes, Route } from 'react-router-dom';
 import { LandingPage } from './components/LandingPage';
 import { Home } from './pages/Home';
 import { WikiView } from './pages/WikiView';
 import { EditorPage } from './pages/EditorPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
-import { useAuth } from './hooks/useAuth';
-import { AuthFrame } from './components/AuthFrame';
 
 export function App() {
-  const { user } = useAuth();
-
-  if (!user) {
-    return <AuthFrame />;
-  }
-
   return (
     <Routes>
       <Route path='/' element={<LandingPage />} />
@@ -27,4 +19,4 @@ export function App() {
       <Route path='/Admin' element={<AdminPage />} />
     </Routes>
   );
-}
+}\
