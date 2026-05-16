@@ -7,12 +7,12 @@ import { useCampaign } from '../hooks/useCampaign';
 
 export function EditorPage() {
   useAuthGuard();
-  const { campaignSlug, articleId } = useParams();
+  const { campaignId, articleId } = useParams();
   const navigate = useNavigate();
   const auth = useAuth();
   const campaignManager = useCampaign(auth.user?.username);
 
-  const currentCampaign = campaignManager.getCampaignBySlug(campaignSlug!);
+  const currentCampaign = campaignManager.campaigns.find(c => c.id === campaignId);
   const article = articleId ? campaignManager.articles.find(a => a.id === articleId) : null;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -26,7 +26,7 @@ export function EditorPage() {
         } else {
             await campaignManager.createArticle(currentCampaign.id, articleData);
         }
-        navigate(`/${currentCampaign.slug}/articles`);
+        navigate(`/Campaigns/${currentCampaign.id}`);
     } catch (e) {
         console.error(e);
         setIsSaving(false);
@@ -40,7 +40,7 @@ export function EditorPage() {
         article={article}
         author={auth.user?.username ?? 'Unknown'}
         onSave={handleSave}
-        onClose={() => navigate(`/${campaignSlug}`)}
+        onClose={() => navigate(`/Campaigns/${campaignId}`)}
       />
     </div>
   );

@@ -27,6 +27,8 @@ export type ArticleBlock = {
   links?: SourceLink[];
   position?: { x: number; y: number };
   imageUrl?: string;
+  visibility?: 'all' | 'gm-only';
+  isCollapsed?: boolean;
 };
 
 /**
@@ -56,6 +58,19 @@ export type ArticleData = {
   category: 'Primary Source' | 'Compendium' | 'Meta-Story';
   status: 'draft' | 'pending' | 'published';
   layout_data: { frames: any[] };
+  properties?: Record<string, any>;
+  folderId?: string | null;
+  backgroundUrl?: string;
+};
+
+/**
+ * Data structure for a folder to organize articles.
+ */
+export type Folder = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  campaignId: string;
 };
 
 /**
@@ -70,6 +85,16 @@ export type CampaignWiki = {
   createdAt: string;
   isDeleted?: boolean;
   deletedAt?: string;
+  genres?: string[];
+  customGenres?: string[];
+  backgroundUrl?: string;
+};
+
+/**
+ * Global settings for the wiki interface.
+ */
+export type WikiSettings = {
+  disableAnimations: boolean;
 };
 
 /**

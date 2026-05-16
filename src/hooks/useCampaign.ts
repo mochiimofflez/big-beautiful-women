@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import type { ArticleData, CampaignWiki } from '../types';
+import type { ArticleData, CampaignWiki, Folder } from '../types';
 
 /** Local storage keys for persistence (Fallback) */
 const ARTICLES_KEY = 'wbw_campaign_articles';
 const CAMPAIGNS_KEY = 'wbw_campaign_wikis';
+const FOLDERS_KEY = 'wbw_campaign_folders';
 
 function generateSlug(title: string) {
   return title
@@ -16,6 +17,7 @@ function generateSlug(title: string) {
 export function useCampaign(username?: string) {
   const [campaigns, setCampaigns] = useState<CampaignWiki[]>([]);
   const [articles, setArticles] = useState<ArticleData[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Initialize data
@@ -34,6 +36,9 @@ export function useCampaign(username?: string) {
       const { data: remoteArticles, error: aError } = await supabase.from('articles').select('*');
       if (aError) console.error('Supabase article load error:', aError);
 
+      const { data: remoteFolders, error: fError } = await supabase.from('folders').select('*');
+      if (fError) console.error('Supabase folder load error:', fError);
+
       const campaignsToSet = remoteCampaigns && remoteCampaigns.length > 0 
           ? remoteCampaigns 
           : JSON.parse(window.localStorage.getItem(CAMPAIGNS_KEY) || '[]');
@@ -42,14 +47,28 @@ export function useCampaign(username?: string) {
           ? remoteArticles 
           : JSON.parse(window.localStorage.getItem(ARTICLES_KEY) || '[]');
 
+      const foldersToSet = remoteFolders && remoteFolders.length > 0
+          ? remoteFolders
+          : JSON.parse(window.localStorage.getItem(FOLDERS_KEY) || '[]');
+
       setCampaigns(campaignsToSet);
       setArticles(articlesToSet);
+      setFolders(foldersToSet);
 
       setLoading(false);
     }
 
     initCampaigns();
   }, [username]);
+
+  const updateCampaign = async (updated: CampaignWiki) => {
+    const { error } = await supabase.from('campaigns').update(updated).eq('id', updated.id);
+    if (error) console.warn('Supabase campaign update failed:', error);
+
+    const newList = campaigns.map(c => c.id === updated.id ? updated : c);
+    setCampaigns(newList);
+    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(newList));
+  };
 
   const softDeleteCampaign = async (id: string) => {
     const updated = campaigns.map((c) =>
@@ -98,7 +117,9 @@ export function useCampaign(username?: string) {
       title,
       description,
       owner: username,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      genres: [],
+      customGenres: []
     };
 
     const { error } = await supabase.from('campaigns').insert([newCampaign]);
@@ -112,14 +133,24 @@ export function useCampaign(username?: string) {
 
   const getCampaignBySlug = useCallback((slug: string) => campaigns.find(c => c.slug === slug), [campaigns]);   
 
-  const createArticle = async (campaignId: string, payload: ArticleData) => {
+  const createArticle = async (campaignId: string, payload: Partial<ArticleData>) => {
     const now = new Date().toISOString();
     const article: ArticleData = {
-      ...payload,
       id: `${campaignId}:${payload.id || Date.now()}`,
-      slug: payload.slug || generateSlug(payload.title),
+      slug: payload.slug || generateSlug(payload.title || 'Untitled'),
+      title: payload.title || 'Untitled',
+      summary: payload.summary || '',
+      type: payload.type || 'Compendium',
+      infobox: payload.infobox || [],
+      body: payload.body || [{ title: '', content: '' }],
+      hidden: payload.hidden ?? true,
       createdAt: payload.createdAt || now,
       updatedAt: now,
+      author: payload.author || username || 'Unknown',
+      category: payload.category || 'Compendium',
+      status: payload.status || 'draft',
+      layout_data: payload.layout_data || { frames: [] },
+      ...payload
     };
 
     const { error } = await supabase.from('articles').insert([article]);
@@ -141,19 +172,55 @@ export function useCampaign(username?: string) {
         article.id === updated.id ? { ...updated, updatedAt: new Date().toISOString(), slug: generateSlug(updated.title) } : article
       )
     );
+    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
   };
 
   const deleteArticle = (id: string) => {
-    setArticles((current) => current.filter((article) => article.id !== id));
+    const updated = articles.filter((article) => article.id !== id);
+    setArticles(updated);
+    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
   };
 
   const toggleHidden = (id: string) => {
-    setArticles((current) =>
-      current.map((article) =>
+    const updated = articles.map((article) =>
         article.id === id ? { ...article, hidden: !article.hidden, updatedAt: new Date().toISOString() } : article
-      )
     );
+    setArticles(updated);
+    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
   };
+
+  const createFolder = async (campaignId: string, name: string, parentId: string | null = null) => {
+    const newFolder: Folder = {
+        id: `folder-${Date.now()}`,
+        name,
+        parentId,
+        campaignId
+    };
+    
+    const { error } = await supabase.from('folders').insert([newFolder]);
+    if (error) console.warn('Supabase folder save failed:', error);
+
+    const updated = [...folders, newFolder];
+    setFolders(updated);
+    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(updated));
+    return newFolder;
+  };
+
+  const updateFolder = (updated: Folder) => {
+    const newList = folders.map(f => f.id === updated.id ? updated : f);
+    setFolders(newList);
+    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(newList));
+  };
+
+  const deleteFolder = (id: string) => {
+    const newList = folders.filter(f => f.id !== id);
+    setFolders(newList);
+    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(newList));
+  };
+
+  const getFoldersForCampaign = useCallback((campaignId: string) => {
+    return folders.filter(f => f.campaignId === campaignId);
+  }, [folders]);
 
   const userCampaigns = activeCampaigns.filter(c => c.owner === username);
   const invitedCampaigns = activeCampaigns.filter(c => c.owner !== username);
@@ -165,7 +232,10 @@ export function useCampaign(username?: string) {
     userCampaigns,
     invitedCampaigns,
     articles,
+    folders,
+    loading,
     createCampaign,
+    updateCampaign,
     softDeleteCampaign,
     restoreCampaign,
     getCampaignBySlug,
@@ -174,5 +244,9 @@ export function useCampaign(username?: string) {
     updateArticle,
     deleteArticle,
     toggleHidden,
+    createFolder,
+    updateFolder,
+    deleteFolder,
+    getFoldersForCampaign,
   };
 }

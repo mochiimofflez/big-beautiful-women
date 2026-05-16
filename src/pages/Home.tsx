@@ -12,19 +12,34 @@ export function Home() {
   const campaignManager = useCampaign(auth.user?.username);
   const [newCampaignTitle, setNewCampaignTitle] = useState('');
   const [newCampaignDesc, setNewCampaignDesc] = useState('');
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [customGenre, setCustomGenre] = useState('');
+
+  const PRESET_GENRES = ['Steampunk', 'High Fantasy', 'Cyberpunk', 'Grimdark', 'Urban Fantasy', 'Space Opera', 'Historical'];
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const newC = await campaignManager.createCampaign(newCampaignTitle, newCampaignDesc);
       if (newC) {
+        await campaignManager.updateCampaign({
+            ...newC,
+            genres: selectedGenres,
+            customGenres: customGenre ? [customGenre] : []
+        });
         setNewCampaignTitle('');
         setNewCampaignDesc('');
+        setSelectedGenres([]);
+        setCustomGenre('');
         navigate('/Campaigns/' + newC.id);
       }
     } catch (err: any) {
       alert(err.message);
     }
+  };
+
+  const toggleGenre = (genre: string) => {
+    setSelectedGenres(prev => prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]);
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -91,6 +106,29 @@ export function Home() {
                 autoComplete='off'
                 className='w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-stone outline-none focus:border-amber-400 min-h-[100px]'
               />
+              
+              <div className='space-y-3'>
+                <label className='text-[10px] uppercase tracking-widest text-brass/50 font-bold'>World Genres</label>
+                <div className='flex flex-wrap gap-2'>
+                    {PRESET_GENRES.map(g => (
+                        <button 
+                            key={g}
+                            type='button'
+                            onClick={() => toggleGenre(g)}
+                            className={`px-3 py-1.5 rounded-full text-[10px] uppercase tracking-wider border transition-all ${selectedGenres.includes(g) ? 'bg-brass text-charcoal border-brass font-bold' : 'border-brass/20 text-stone/60 hover:border-brass/50'}`}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
+                <input 
+                    placeholder='Custom Genre...'
+                    value={customGenre}
+                    onChange={(e) => setCustomGenre(e.target.value)}
+                    className='w-full p-2 bg-transparent border-b border-brass/10 text-xs text-stone outline-none focus:border-brass/40'
+                />
+              </div>
+
               <button
                 type='submit'
                 disabled={!auth.user}

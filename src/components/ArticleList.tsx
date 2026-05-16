@@ -1,130 +1,119 @@
-import type { ArticleData } from '../types';
+import { useState } from 'react';
+import type { ArticleData, Folder } from '../types';
 
 type ArticleListProps = {
-  /** The collection of articles to display */
   articles: ArticleData[];
-  /** The ID of the currently selected article for highlighting */
+  folders: Folder[];
   activeArticleId: string | null;
-  /** The section label used to filter the list */
-  selectedSection: string;
-  /** The search string used to filter titles and summaries */
   query: string;
-  /** Whether the current user has GM permissions to manage articles */
   canManage: boolean;
-  /** Callback triggered when an article card is clicked */
   onSelect: (id: string) => void;
-  /** Callback to open the editor for a specific article */
   onEdit: (article: ArticleData) => void;
-  /** Callback to delete an article */
   onDelete: (id: string) => void;
-  /** Callback to toggle whether an article is hidden from readers */
   onToggleHidden: (id: string) => void;
+  onCreateFolder?: (name: string) => void;
 };
 
-/**
- * Displays a list of articles filtered by section and search query.
- * 
- * Each article is presented as a card with summary metadata.
- * GMs are provided with additional controls to edit, hide, or delete entries.
- */
 export function ArticleList({
   articles,
+  folders,
   activeArticleId,
-  selectedSection,
   query,
   canManage,
   onSelect,
   onEdit,
   onDelete,
   onToggleHidden,
+  onCreateFolder,
 }: ArticleListProps) {
-  /**
-   * Filter logic:
-   * 1. Check if the article belongs to the currently selected section (or "All").
-   * 2. Check if the title, summary, or type contains the search query.
-   */
-  const filtered = articles.filter((article) => {
-    const matchesSection = selectedSection === 'All' || article.type === selectedSection;
-    const matchesQuery = [article.title, article.summary, article.type].some((value) =>
-      value.toLowerCase().includes(query.toLowerCase())
-    );
-    return matchesSection && matchesQuery;
-  });
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
 
-  // Empty state handling
-  if (!filtered.length) {
+  const toggleFolder = (id: string) => {
+    setExpandedFolders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const filteredArticles = articles.filter(a => 
+    a.title.toLowerCase().includes(query.toLowerCase()) ||
+    a.summary.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const rootArticles = filteredArticles.filter(a => !a.folderId);
+
+  const renderArticle = (article: ArticleData) => (
+    <div
+      key={article.id}
+      className={`group flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer ${
+        article.id === activeArticleId ? 'bg-brass/20 text-amber-200 shadow-sm' : 'text-stone/60 hover:bg-brass/5'
+      }`}
+      onClick={() => onSelect(article.id)}
+    >
+      <div className='flex items-center gap-2 overflow-hidden'>
+        <span className='text-xs opacity-40'>📄</span>
+        <span className='text-xs truncate font-medium'>{article.title}</span>
+        {article.status === 'draft' && <span className='text-[10px] bg-stone/20 px-1 rounded'>Draft</span>}
+        {article.hidden && <span className='text-[10px] text-red-400'>🔒</span>}
+      </div>
+      
+      {canManage && (
+          <div className='opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity'>
+              <button onClick={(e) => { e.stopPropagation(); onEdit(article); }} className='p-1 hover:text-amber-200 text-[10px]'>✎</button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(article.id); }} className='p-1 hover:text-red-400 text-[10px]'>✕</button>
+          </div>
+      )}
+    </div>
+  );
+
+  const renderFolder = (folder: Folder) => {
+    const isExpanded = expandedFolders[folder.id];
+    const folderArticles = filteredArticles.filter(a => a.folderId === folder.id);
+    
     return (
-      <div className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-6 shadow-library">
-        <div className="text-sm text-stone/70">
-          No articles match your search or section filter.
+      <div key={folder.id} className='space-y-1'>
+        <div 
+            onClick={() => toggleFolder(folder.id)}
+            className='flex items-center gap-2 px-3 py-2 text-stone/80 hover:bg-brass/5 rounded-lg cursor-pointer group'
+        >
+            <span className='text-xs transition-transform duration-200' style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}>▶</span>
+            <span className='text-xs'>📁</span>
+            <span className='text-xs font-semibold flex-1'>{folder.name}</span>
+            <span className='text-[10px] opacity-40'>{folderArticles.length}</span>
         </div>
+        
+        {isExpanded && (
+            <div className='ml-6 space-y-1 border-l border-brass/10 pl-2 animate-in slide-in-from-left-2 duration-200'>
+                {folderArticles.map(renderArticle)}
+            </div>
+        )}
       </div>
     );
-  }
+  };
 
   return (
-    <div className="rounded-3xl border border-brass/10 bg-[#0d0b0b] p-4 shadow-library">
-      <div className="mb-4 text-xs uppercase tracking-[0.35em] text-brass/70">Campaign Articles</div>
-      
-      <div className="space-y-3">
-        {filtered.map((article) => (
-          <div
-            key={article.id}
-            className={`rounded-3xl border px-4 py-4 transition ${
-              article.id === activeArticleId ? 'border-amber-400/30 bg-[#161313]' : 'border-brass/5 bg-charcoal/90 hover:border-brass/20 '
-            }`}
+    <div className="space-y-6">
+      {canManage && onCreateFolder && (
+          <button 
+            onClick={() => {
+                const name = window.prompt('Enter folder name:');
+                if (name) onCreateFolder(name);
+            }}
+            className='w-full p-2 text-[10px] uppercase tracking-widest text-brass/50 hover:text-brass border border-brass/10 border-dashed rounded-lg transition-colors'
           >
-            {/* Article Header & Visibility Badge */}
-            <div className="flex items-start justify-between gap-3">
-              <button className="text-left" onClick={() => onSelect(article.id)}>
-                <div className="text-base font-semibold text-stone-100">{article.title}</div>
-                <div className="text-[11px] uppercase tracking-[0.35em] text-brass/70">
-                  {article.type}
-                </div>
-              </button>
-              {article.hidden && (
-                <span className="rounded-full bg-red-900/80 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-red-200">
-                  Hidden
-                </span>
-              )}
-            </div>
+            + Create Folder
+          </button>
+      )}
 
-            {/* Metadata Footer */}
-            <div className="mt-2 flex flex-wrap gap-2 text-sm text-stone/70">
-              <span>{new Date(article.updatedAt).toLocaleDateString()}</span>
-              <span>{article.author}</span>
+      <div className="space-y-1">
+        {folders.map(renderFolder)}
+        {rootArticles.length > 0 && (
+            <div className='pt-2 space-y-1'>
+                {rootArticles.map(renderArticle)}
             </div>
-
-            {/* GM Management Controls */}
-            {canManage ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  className="rounded-2xl border border-brass/20 bg-brass/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-brass transition hover:bg-brass/20"
-                  onClick={() => onEdit(article)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="rounded-2xl border border-stone/20 bg-[#111] px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-stone transition hover:bg-[#1d1b1b]"
-                  onClick={() => onToggleHidden(article.id)}
-                >
-                  {article.hidden ? 'Unhide' : 'Hide'}
-                </button>
-                <button
-                  className="rounded-2xl border border-red-700/20 bg-red-900/10 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-red-300 transition hover:bg-red-900/20"
-                  onClick={() => {
-                    if (canManage && window.confirm('Are you sure you want to delete this article? This action cannot be undone.')) {
-                        onDelete(article.id);
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            ) : null}
-          </div>
-        ))}
+        )}
       </div>
+
+      {filteredArticles.length === 0 && (
+          <div className='text-xs text-stone/40 italic text-center py-4'>No files found.</div>
+      )}
     </div>
   );
 }
