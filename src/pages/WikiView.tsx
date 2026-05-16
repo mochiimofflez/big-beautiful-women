@@ -123,7 +123,7 @@ export function WikiView() {
 
             <div className='flex gap-4 mb-4'>
                 <button onClick={() => setActiveTab('articles')} className={activeTab === 'articles' ? 'text-brass' : 'text-stone'}>Recent Articles</button>
-                <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'}>Notes</button>
+                <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'>Notes</button>
             </div>
 
             {canManage && (
@@ -161,7 +161,7 @@ export function WikiView() {
       )}
 
       <main className='flex-1 p-10 overflow-y-auto'>
-        <div className='absolute top-6 right-6 z-50'>
+        <div className='absolute top-6 right-6 z-[100]'>
             {auth.user && <ProfileMenu />}
         </div>
         {!isSidebarOpen && (
