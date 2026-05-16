@@ -9,7 +9,7 @@ const INVITE_STORAGE_KEY = 'wbw_invite_code';
 
 const SYSTEM_PROFILE: UserProfile = {
   username: 'SYSTEM',
-  password: '7rE31]Q}DJ^Pa#b~(L8',
+  password: import.meta.env.VITE_SYSTEM_PASSWORD || 'default_fallback_change_me',
   role: 'admin',
   unlockedWikis: ['all'],
 };
