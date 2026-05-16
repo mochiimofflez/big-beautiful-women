@@ -5,6 +5,8 @@ import { useAuth } from '../hooks/useAuth';
 
 export function LandingPage() {
   const auth = useAuth();
+  const navigate = useNavigate();
+
   const [handleOrEmail, setHandleOrEmail] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
