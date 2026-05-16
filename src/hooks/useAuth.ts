@@ -111,22 +111,26 @@ export function useAuth() {
       setShowLogin(false);
       setAuthMessage('');
       return;
-    }
-
     // SIGN UP Flow
     if (existing) {
       setAuthMessage('This handle is already recorded in the archive.');
       return;
     }
 
+    console.log('Validating invite code:', inviteInput.trim().toUpperCase());
     const isValid = await validateInviteCode(inviteInput.trim().toUpperCase(), 'SITE');
     if (!isValid) {
+      console.log('Invite code validation failed');
       setAuthMessage('A valid Access Key is required to establish a new profile record.');
       return;
     }
 
     // Mark code as used
-    await supabase.from('invite_codes').update({ used: true }).eq('code', inviteInput.trim().toUpperCase());
+    console.log('Marking code as used');
+    const { error: updateError } = await supabase.from('invite_codes').update({ used: true }).eq('code', inviteInput.trim().toUpperCase());
+    if (updateError) {
+        console.error('Error marking code as used:', updateError);
+    }
 
     const newProfile: UserProfile = {
       username: username.trim(),
@@ -135,16 +139,21 @@ export function useAuth() {
       unlockedWikis: [],
     };
 
+    console.log('New profile to create:', newProfile);
     const updatedProfiles = [...profiles, newProfile];
     setProfiles(updatedProfiles);
     window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
+    console.log('Profiles updated in state and localStorage');
 
     // Automatically log in
     setUser(newProfile);
     window.localStorage.setItem(CURRENT_USER_KEY, newProfile.username);
+    console.log('User state set and session persisted');
     setShowLogin(false);
     setAuthMessage('');
     setInviteInput('');
+    setAuthMode('signin');
+    };
     setAuthMode('signin'); // Reset to signin mode for consistency
   };
 
