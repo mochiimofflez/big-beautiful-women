@@ -66,35 +66,20 @@ export function AuthFrame({
               className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
             />
           ) : (
-            <input
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="Email Address"
-              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-            />
-          {mode === 'signup' && (
-            <input
-              value={email}
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="Email Address"
-              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-            />
-          )}
-          {mode === 'signup' && (
-            <input
-              value={inviteInput}
-              onChange={(event) => onInviteInputChange(event.target.value)}
-              placeholder="Username"
-              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-            />
-          )}
-          {mode === 'signup' && (
-            <input
-              value={inviteInput}
-              onChange={(event) => onInviteInputChange(event.target.value)}
-              placeholder="Access Key"
-              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-            />
+            <>
+              <input
+                value={email}
+                onChange={(event) => onEmailChange(event.target.value)}
+                placeholder="Email Address"
+                className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+              />
+              <input
+                value={inviteInput}
+                onChange={(event) => onInviteInputChange(event.target.value)}
+                placeholder="Access Key"
+                className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+              />
+            </>
           )}
           {authMessage && <p className="text-[11px] text-red-400">{authMessage}</p>}
           {successMessage && <p className="text-[11px] text-emerald-400">{successMessage}</p>}
