@@ -105,7 +105,7 @@ export function WikiView() {
   const [globalSettings, setGlobalSettings] = useState({ disableAnimations: false });
 
   const currentCampaign = useMemo(() =>
-    campaignId ? campaignManager.campaigns.find(c => c.id === campaignId) : null
+    campaignId ? campaignManager.campaigns.find(c => c.id === campaignId || c.slug === campaignId) : null
   , [campaignId, campaignManager.campaigns]);
 
   const campaignArticles = useMemo(() =>
@@ -137,12 +137,12 @@ export function WikiView() {
   );
 
   useEffect(() => {
-    if (activeTabId) {
-      navigate(`/Campaigns/${campaignId}/${activeTabId}`, { replace: true });
-    } else {
-      navigate(`/Campaigns/${campaignId}`, { replace: true });
+    if (activeTabId && currentCampaign) {
+      navigate(`/Campaigns/${currentCampaign.id}/${activeTabId}`, { replace: true });
+    } else if (currentCampaign) {
+      navigate(`/Campaigns/${currentCampaign.id}`, { replace: true });
     }
-  }, [activeTabId, campaignId, navigate]);
+  }, [activeTabId, currentCampaign, navigate]);
 
   useEffect(() => {
     if (routeArticleId && !openTabIds.includes(routeArticleId)) {
@@ -338,6 +338,7 @@ export function WikiView() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [history, historyIndex, campaignManager, activeArticle]);
 
+  if (campaignManager.loading) return <div className='h-screen flex items-center justify-center bg-charcoal text-brass italic'>Unlocking the archives...</div>;
   if (!currentCampaign) return <NotFoundCampaignPage />;
 
   return (

@@ -260,7 +260,7 @@ export function useCampaign(username?: string, userRole?: string) {
   const invitedCampaigns = activeCampaigns.filter(c => c.owner !== username);
 
   return {
-    campaigns,
+    campaigns, // Keep the full list for lookup in WikiView
     activeCampaigns,
     archivedCampaigns,
     userCampaigns,
