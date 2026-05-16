@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthFrame } from './AuthFrame';
 import { useAuth } from '../hooks/useAuth';
