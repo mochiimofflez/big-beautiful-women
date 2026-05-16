@@ -1,4 +1,4 @@
-\import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -28,16 +28,16 @@ export function ProfileMenu() {
       </button>
 
       {isOpen && (
-        <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-50'>
-          <Link to={/Users/} className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>View Profile</Link>
-          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone'>Status</button>
-          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone'>Settings</button>
+        <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-50'> 
+          <Link to={`/Users/${auth.user.username}`} className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>View Profile</Link>
+          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone'>Status</button>   
+          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone'>Settings</button> 
           {auth.user.role === 'admin' && (
             <Link to='/Admin' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-amber-500'>Admin Panel</Link>
           )}
-          <button onClick={() => { auth.logout(); navigate('/'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
+          <button onClick={() => { auth.logout(); navigate('/Library'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
         </div>
       )}
     </div>
   );
-}\
+}

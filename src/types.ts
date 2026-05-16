@@ -1,4 +1,4 @@
-\/**
+/**
  * Represents a section within the wiki, such as 'Locations' or 'Important Figures'.
  */
 export type WikiSection = {
@@ -81,4 +81,4 @@ export type UserProfile = {
   role: 'admin' | 'reader';
   unlockedWikis: string[];
   avatarUrl?: string;
-};\
+};
