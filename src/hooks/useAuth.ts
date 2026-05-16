@@ -10,7 +10,7 @@ const INVITE_STORAGE_KEY = 'wbw_invite_code';
 const SYSTEM_PROFILE: UserProfile = {
   username: 'SYSTEM',
   password: '7rE31]Q}DJ^Pa#b~(L8',
-  role: 'gm',
+  role: 'admin',
   unlockedWikis: ['all'],
 };
 
