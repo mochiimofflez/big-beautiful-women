@@ -5,6 +5,7 @@ interface AuthFrameProps {
   password: string;
   inviteInput: string;
   authMessage: string;
+  successMessage?: string;
   onClose: () => void;
   onToggleMode: () => void;
   onUsernameChange: (value: string) => void;
@@ -20,6 +21,7 @@ export function AuthFrame({
   password,
   inviteInput,
   authMessage,
+  successMessage,
   onClose,
   onToggleMode,
   onUsernameChange,
@@ -49,7 +51,6 @@ export function AuthFrame({
                 : 'Create a new reader record with a valid access key.'}
             </p>
           </div>
-          {/* Close button removed for landing page gateway enforcement */}
         </div>
 
         <div className="space-y-4">
@@ -75,6 +76,7 @@ export function AuthFrame({
             />
           )}
           {authMessage && <p className="text-[11px] text-red-400">{authMessage}</p>}
+          {successMessage && <p className="text-[11px] text-emerald-400">{successMessage}</p>}
           <button
             type="button"
             onClick={onSubmit}

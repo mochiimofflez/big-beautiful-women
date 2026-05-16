@@ -6,10 +6,14 @@ export function LandingPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const handleLogin = async () => {
+    setSuccessMessage('');
     await auth.handleLogin();
     if (auth.user) {
-        navigate('/Library');
+        setSuccessMessage('Successfully signed up!');
+        setTimeout(() => navigate('/Library'), 1500);
     }
   };
 
@@ -22,6 +26,7 @@ export function LandingPage() {
         password={auth.password}
         inviteInput={auth.inviteInput}
         authMessage={auth.authMessage}
+        successMessage={successMessage}
         onClose={() => {}}
         onToggleMode={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
         onUsernameChange={auth.setUsername}
