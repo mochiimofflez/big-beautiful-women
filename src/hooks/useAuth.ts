@@ -139,11 +139,13 @@ export function useAuth() {
     setProfiles(updatedProfiles);
     window.localStorage.setItem(PROFILES_KEY, JSON.stringify(updatedProfiles));
 
+    // Automatically log in
     setUser(newProfile);
     window.localStorage.setItem(CURRENT_USER_KEY, newProfile.username);
     setShowLogin(false);
     setAuthMessage('');
     setInviteInput('');
+    setAuthMode('signin'); // Reset to signin mode for consistency
   };
 
   const logout = () => {
