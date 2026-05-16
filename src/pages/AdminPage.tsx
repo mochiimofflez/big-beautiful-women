@@ -10,7 +10,9 @@ export function AdminPage() {
   const campaignManager = useCampaign(auth.user?.username);
   const [invite, setInvite] = useState('');
 
-  if (auth.user?.role !== 'admin') return <div>Access Denied</div>;
+  console.log('AdminPage: Current user role:', auth.user?.role);
+
+  if (auth.user?.role !== 'admin') return <div>Access Denied (Role: {auth.user?.role})</div>;
 
   return (
     <div className='p-10 text-stone'>
