@@ -121,7 +121,8 @@ export function useCampaign(username?: string, userRole?: string) {
   }, [username]);
 
   const updateCampaign = async (updated: CampaignWiki) => {
-    const { error } = await supabase.from('campaigns').update(mapCampaignToDB(updated)).eq('id', updated.id);
+    const dbData = mapCampaignToDB(updated);
+    const { error } = await supabase.from('campaigns').update(dbData).eq('id', updated.id);
     if (error) console.warn('Supabase campaign update failed:', error);
   };
 
@@ -202,9 +203,24 @@ export function useCampaign(username?: string, userRole?: string) {
   const updateArticle = async (updated: ArticleData) => {
     if (!isGM) throw new Error('Unauthorized: GM role required to update articles.');
     const { error } = await supabase.from('articles').update({
-        ...updated,
-        updatedAt: new Date().toISOString(),
-        slug: generateSlug(updated.title)
+        slug: generateSlug(updated.title),
+        title: updated.title,
+        summary: updated.summary,
+        type: updated.type,
+        infobox: updated.infobox,
+        body: updated.body,
+        elements: updated.elements,
+        hidden: updated.hidden,
+        updated_at: new Date().toISOString(),
+        author: updated.author,
+        category: updated.category,
+        status: updated.status,
+        layout_data: updated.layout_data,
+        folder_id: updated.folderId,
+        background_url: updated.backgroundUrl,
+        ambience_url: updated.ambienceUrl,
+        is_deleted: updated.isDeleted,
+        deleted_at: updated.deletedAt
     }).eq('id', updated.id);
     if (error) console.warn('Supabase article update failed:', error);
   };
@@ -218,8 +234,8 @@ export function useCampaign(username?: string, userRole?: string) {
   const softDeleteArticle = async (id: string) => {
       if (!isGM) throw new Error('Unauthorized');
       const { error } = await supabase.from('articles').update({
-          isDeleted: true,
-          deletedAt: new Date().toISOString()
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
       }).eq('id', id);
       if (error) console.warn('Soft delete failed:', error);
   };
@@ -227,8 +243,8 @@ export function useCampaign(username?: string, userRole?: string) {
   const restoreArticle = async (id: string) => {
       if (!isGM) throw new Error('Unauthorized');
       const { error } = await supabase.from('articles').update({
-          isDeleted: false,
-          deletedAt: null
+          is_deleted: false,
+          deleted_at: null
       }).eq('id', id);
       if (error) console.warn('Restore failed:', error);
   };
@@ -255,14 +271,26 @@ export function useCampaign(username?: string, userRole?: string) {
         visibility: 'all'
     };
     
-    const { error } = await supabase.from('folders').insert([newFolder]);
+    const { error } = await supabase.from('folders').insert([{
+        id: newFolder.id,
+        name: newFolder.name,
+        parent_id: newFolder.parentId,
+        campaign_id: newFolder.campaignId,
+        visibility: newFolder.visibility
+    }]);
     if (error) console.warn('Supabase folder save failed:', error);
     return newFolder;
   };
 
   const updateFolder = async (updated: Folder) => {
     if (!isGM) throw new Error('Unauthorized: GM role required to update folders.');
-    const { error } = await supabase.from('folders').update(updated).eq('id', updated.id);
+    const { error } = await supabase.from('folders').update({
+        name: updated.name,
+        parent_id: updated.parentId,
+        visibility: updated.visibility,
+        is_deleted: updated.isDeleted,
+        deleted_at: updated.deletedAt
+    }).eq('id', updated.id);
     if (error) console.warn('Supabase folder update failed:', error);
   };
 
@@ -275,8 +303,8 @@ export function useCampaign(username?: string, userRole?: string) {
   const softDeleteFolder = async (id: string) => {
       if (!isGM) throw new Error('Unauthorized');
       const { error } = await supabase.from('folders').update({
-          isDeleted: true,
-          deletedAt: new Date().toISOString()
+          is_deleted: true,
+          deleted_at: new Date().toISOString()
       }).eq('id', id);
       if (error) console.warn('Folder soft delete failed:', error);
   };
@@ -284,8 +312,8 @@ export function useCampaign(username?: string, userRole?: string) {
   const restoreFolder = async (id: string) => {
       if (!isGM) throw new Error('Unauthorized');
       const { error } = await supabase.from('folders').update({
-          isDeleted: false,
-          deletedAt: null
+          is_deleted: false,
+          deleted_at: null
       }).eq('id', id);
       if (error) console.warn('Folder restore failed:', error);
   };
