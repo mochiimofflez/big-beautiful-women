@@ -77,6 +77,22 @@ export function useAuth() {
     setUser(null);
   };
 
+  const generateInviteCode = async (wikiId: string) => {
+    if (user?.role !== 'admin') {
+        setInviteMessage('Access denied: Admin role required.');
+        return;
+    }
+    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const { error } = await supabase.from('invite_codes').insert([{ code, wiki_id: wikiId }]);
+    if (error) {
+        console.error('Supabase invite generation error:', error);
+        setInviteMessage('Failed to generate invite code: ' + error.message);
+        return;
+    }
+    setInviteMessage('Access Key generated: ' + code);
+    return code;
+  };
+
   return {
     user,
     loading,
@@ -88,5 +104,6 @@ export function useAuth() {
     handleSignUp,
     handleLogin,
     logout,
+    generateInviteCode,
   };
 }
