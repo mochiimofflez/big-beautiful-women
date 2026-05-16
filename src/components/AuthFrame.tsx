@@ -1,3 +1,19 @@
+interface AuthFrameProps {
+  show: boolean;
+  mode: 'signin' | 'signup';
+  handleOrEmail: string;
+  username: string;
+  email: string;
+  password: string;
+  inviteInput: string;
+  authMessage: string;
+  successMessage?: string;
+  onClose: () => void;
+  onToggleMode: () => void;
+  onHandleOrEmailChange: (value: string) => void;
+  onUsernameChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
   onInviteInputChange: (value: string) => void;
   onSubmit: () => void;
   isLoading: boolean;

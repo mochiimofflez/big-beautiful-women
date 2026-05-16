@@ -130,7 +130,7 @@ export function ArticleEditor({ open, article, author, onSave, onClose }: Articl
     }
   };
 
-  const updateBlock = (index: number, field: keyof ArticleBlock, value: string) => {
+  const updateBlock = (index: number, field: keyof ArticleBlock, value: any) => {
     setBlocks((current) => current.map((b, i) => (i === index ? { ...b, [field]: value } : b)));
   };
 
