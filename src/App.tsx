@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { RootRedirect } from './components/RootRedirect';
 import { LandingPage } from './components/LandingPage';
 import { Home } from './pages/Home';
 import { WikiView } from './pages/WikiView';
@@ -9,7 +10,8 @@ import { AdminPage } from './pages/AdminPage';
 export function App() {
   return (
     <Routes>
-      <Route path='/' element={<LandingPage />} />
+      <Route path='/' element={<RootRedirect />} />
+      <Route path='/Login' element={<LandingPage />} />
       <Route path='/Library' element={<Home />} />
       <Route path='/Campaigns/:campaignId' element={<WikiView />} />
       <Route path='/Campaigns/:campaignId/:articleId' element={<WikiView />} />
