@@ -9,7 +9,7 @@ export function NotFoundArticlePage() {
         <p className="text-stone/70">The requested article could not be located in this archive.</p>
         <div className="flex gap-4 justify-center">
             <Link to={`/Campaigns/${campaignId}`} className="bg-brass/20 text-brass px-6 py-3 rounded-2xl">Return to Campaign</Link>
-            <Link to="/" className="bg-brass text-charcoal px-6 py-3 rounded-2xl font-bold">Return to Library</Link>
+            <Link to="/" className="bg-brass text-charcoal px-6 py-3 rounded-2xl font-bold">Return to Home</Link>
         </div>
       </div>
     </div>
