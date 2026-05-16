@@ -11,9 +11,12 @@ export function LandingPage() {
   
   const handleLogin = async () => {
     setSuccessMessage('');
+    const prevMode = auth.authMode;
     await auth.handleLogin();
     if (auth.user) {
-        setSuccessMessage('Successfully signed up!');
+        if (prevMode === 'signup') {
+            setSuccessMessage('Successfully signed up!');
+        }
         setTimeout(() => navigate('/Library'), 1500);
     }
   };
