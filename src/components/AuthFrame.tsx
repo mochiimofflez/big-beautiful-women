@@ -81,6 +81,13 @@ export function AuthFrame({
               />
             </>
           )}
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => onPasswordChange(event.target.value)}
+            placeholder="Secret phrase"
+            className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+          />
           {authMessage && <p className="text-[11px] text-red-400">{authMessage}</p>}
           {successMessage && <p className="text-[11px] text-emerald-400">{successMessage}</p>}
           <button
