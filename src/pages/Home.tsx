@@ -46,18 +46,20 @@ export function Home() {
           {/* Create Campaign Panel */}
           <section className='rounded-3xl border border-brass/10 bg-[#0d0b0b] p-8 shadow-library space-y-6'>    
             <h2 className='text-2xl font-display text-amber-100'>Establish New Campaign</h2>
-            <form onSubmit={handleCreateCampaign} className='space-y-4'>
+            <form onSubmit={handleCreateCampaign} className='space-y-4' autoComplete='off'>
               <input
                 required
                 placeholder='Campaign Title'
                 value={newCampaignTitle}
                 onChange={(e) => setNewCampaignTitle(e.target.value)}
+                autoComplete='off'
                 className='w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-stone outline-none focus:border-amber-400'
               />
               <textarea
                 placeholder='Campaign Description (Optional)'
                 value={newCampaignDesc}
                 onChange={(e) => setNewCampaignDesc(e.target.value)}
+                autoComplete='off'
                 className='w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-stone outline-none focus:border-amber-400 min-h-[100px]'
               />
               <button
@@ -84,7 +86,7 @@ export function Home() {
                     className='block group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md'
                   >
                     <div className='flex justify-between items-start mb-2'>
-                      <h3 className='text-xl font-semibold text-amber-50 group-hover:text-amber-200 transition-colors'>{c.title}</h3>
+                      <h3 className='text-xl font-semibold text-amber-50 group-hover:border-amber-200 transition-colors'>{c.title}</h3>
                       <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span> 
                     </div>
                     <p className='text-sm text-stone/70 line-clamp-2'>{c.description}</p>
