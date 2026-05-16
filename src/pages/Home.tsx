@@ -105,7 +105,7 @@ export function Home() {
           <section className='space-y-6'>
             <h2 className='text-2xl font-display text-amber-100'>Available Wikis</h2>
             <div className='space-y-4'>
-              {campaignManager.campaigns.length === 0 ? (
+              {campaignManager.activeCampaigns.length === 0 ? (
                 <p className='text-stone/50 italic'>No campaigns found in the library records.</p>
               ) : (
                 campaignManager.activeCampaigns.map(c => (

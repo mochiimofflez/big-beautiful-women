@@ -34,8 +34,16 @@ export function useCampaign(username?: string) {
       const { data: remoteArticles, error: aError } = await supabase.from('articles').select('*');
       if (aError) console.error('Supabase article load error:', aError);
 
-      setCampaigns(remoteCampaigns || []);
-      setArticles(remoteArticles || []);
+      const campaignsToSet = remoteCampaigns && remoteCampaigns.length > 0 
+          ? remoteCampaigns 
+          : JSON.parse(window.localStorage.getItem(CAMPAIGNS_KEY) || '[]');
+      
+      const articlesToSet = remoteArticles && remoteArticles.length > 0 
+          ? remoteArticles 
+          : JSON.parse(window.localStorage.getItem(ARTICLES_KEY) || '[]');
+
+      setCampaigns(campaignsToSet);
+      setArticles(articlesToSet);
 
       setLoading(false);
     }
