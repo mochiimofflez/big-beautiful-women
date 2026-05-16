@@ -54,6 +54,7 @@ export function useAuth() {
       if (!initialProfiles.find(p => p.username.toLowerCase() === 'system')) {
         initialProfiles.push(SYSTEM_PROFILE);
       }
+      console.log('Loaded profiles:', initialProfiles);
       setProfiles(initialProfiles);
 
       // 2. Load current session
