@@ -39,19 +39,20 @@ export function useAuth() {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (data) {
+    if (error) {
+      console.error('Profile fetch error:', error);
+    } else if (data) {
       setUser(data);
     } else {
-      console.error('Profile fetch error:', error);
+      console.warn('No profile found for user:', userId);
+      setUser(null);
     }
     setLoading(false);
   }
 
   const handleSignUp = async (username: string, password: string, email: string) => {
-    // Note: This assumes standard Supabase Auth email/password flow.
-    // Adjust if you are strictly using usernames.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -59,10 +60,27 @@ export function useAuth() {
     });
 
     if (error) {
+        console.error('Supabase Auth error:', error);
         setAuthMessage(error.message);
         return;
     }
-    setUser(data.user as any); // Simplification for migration
+
+    if (data.user) {
+        console.log('User created, attempting profile insert...');
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+                { id: data.user.id, username, email, role: 'reader' }
+            ]);
+
+        if (profileError) {
+            console.error('Profile insert error:', profileError);
+            setAuthMessage('Database error creating new user profile: ' + profileError.message);
+            return;
+        }
+        console.log('Profile created successfully!');
+        setUser(data.user as any); 
+    }
   };
 
   const handleLogin = async (handleOrEmail: string, password: string) => {
