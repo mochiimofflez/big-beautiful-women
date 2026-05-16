@@ -44,7 +44,11 @@ export function useAuth() {
     if (error) {
       console.error('Profile fetch error:', error);
     } else if (data) {
-      setUser(data);
+      setUser({
+          ...data,
+          avatarUrl: data.avatar_url,
+          unlockedWikis: data.unlocked_wikis || []
+      });
     } else {
       console.warn('No profile found for user:', userId);
       setUser(null);
@@ -134,6 +138,30 @@ export function useAuth() {
     return code;
   };
 
+  const redeemInviteCode = async (code: string) => {
+    if (!user) return;
+    const { data: invite, error: iError } = await supabase
+        .from('invite_codes')
+        .select('wiki_id')
+        .eq('code', code.toUpperCase())
+        .single();
+    
+    if (iError || !invite) {
+        setInviteMessage('Invalid access key.');
+        return;
+    }
+
+    const { error } = await supabase
+        .from('campaign_members')
+        .insert([{ user_id: user.id, wiki_id: invite.wiki_id }]);
+    
+    if (error) {
+        setInviteMessage('Failed to join campaign: ' + error.message);
+    } else {
+        setInviteMessage('Successfully joined campaign!');
+    }
+  };
+
   return {
     user,
     loading,
@@ -146,5 +174,6 @@ export function useAuth() {
     handleLogin,
     logout,
     generateInviteCode,
+    redeemInviteCode,
   };
 }

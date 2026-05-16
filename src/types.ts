@@ -9,6 +9,20 @@ export type WikiSection = {
 };
 
 /**
+ * Defines the new extensible element structure for article content.
+ */
+export type ArticleElement = {
+  id: string;
+  type: 'text' | 'map' | 'image' | 'audio' | 'video' | 'pdf' | 'recording';
+  content: string; // Used for text, URL, or JSON blob
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  visibility: 'all' | 'gm-only';
+  properties?: Record<string, any>;
+  zIndex?: number;
+};
+
+/**
  * Defines a link to another article or external source within an article body.
  */
 export type SourceLink = {
@@ -19,7 +33,7 @@ export type SourceLink = {
 };
 
 /**
- * A discrete block of content within an article.
+ * A discrete block of content within an article (Legacy - migrate to ArticleElement).
  */
 export type ArticleBlock = {
   title: string;
@@ -50,7 +64,8 @@ export type ArticleData = {
   summary: string;
   type: string;
   infobox: InfoboxItem[];
-  body: ArticleBlock[];
+  body: ArticleBlock[]; // Legacy blocks
+  elements?: ArticleElement[]; // New extensible elements
   hidden: boolean;
   createdAt: string;
   updatedAt: string;
@@ -61,6 +76,9 @@ export type ArticleData = {
   properties?: Record<string, any>;
   folderId?: string | null;
   backgroundUrl?: string;
+  ambienceUrl?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
 };
 
 /**
@@ -71,6 +89,9 @@ export type Folder = {
   name: string;
   parentId: string | null;
   campaignId: string;
+  visibility: 'all' | 'gm-only';
+  isDeleted?: boolean;
+  deletedAt?: string;
 };
 
 /**
@@ -88,6 +109,7 @@ export type CampaignWiki = {
   genres?: string[];
   customGenres?: string[];
   backgroundUrl?: string;
+  inviteCode?: string;
 };
 
 /**
@@ -101,6 +123,7 @@ export type WikiSettings = {
  * Represents a user of the wiki system and their access levels.
  */
 export type UserProfile = {
+  id: string;
   username: string;
   password: string;
   role: 'admin' | 'gm' | 'reader' | 'guest';

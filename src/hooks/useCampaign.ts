@@ -14,103 +14,97 @@ function generateSlug(title: string) {
     .replace(/(^-|-$)/g, '');
 }
 
-export function useCampaign(username?: string) {
+export function useCampaign(username?: string, userRole?: string) {
   const [campaigns, setCampaigns] = useState<CampaignWiki[]>([]);
   const [articles, setArticles] = useState<ArticleData[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isGM = userRole === 'admin' || userRole === 'gm';
+
   // Initialize data
   useEffect(() => {
-    async function initCampaigns() {
-      if (!username) {
+    if (!username) {
         setLoading(false);
         return;
-      }
-      setLoading(true);
-
-      // Fetch from Supabase
-      const { data: remoteCampaigns, error: cError } = await supabase.from('campaigns').select('*');
-      if (cError) console.error('Supabase campaign load error:', cError);
-      
-      const { data: remoteArticles, error: aError } = await supabase.from('articles').select('*');
-      if (aError) console.error('Supabase article load error:', aError);
-
-      const { data: remoteFolders, error: fError } = await supabase.from('folders').select('*');
-      if (fError) console.error('Supabase folder load error:', fError);
-
-      const campaignsToSet = remoteCampaigns && remoteCampaigns.length > 0 
-          ? remoteCampaigns 
-          : JSON.parse(window.localStorage.getItem(CAMPAIGNS_KEY) || '[]');
-      
-      const articlesToSet = remoteArticles && remoteArticles.length > 0 
-          ? remoteArticles 
-          : JSON.parse(window.localStorage.getItem(ARTICLES_KEY) || '[]');
-
-      const foldersToSet = remoteFolders && remoteFolders.length > 0
-          ? remoteFolders
-          : JSON.parse(window.localStorage.getItem(FOLDERS_KEY) || '[]');
-
-      setCampaigns(campaignsToSet);
-      setArticles(articlesToSet);
-      setFolders(foldersToSet);
-
-      setLoading(false);
     }
 
-    initCampaigns();
+    const fetchAll = async () => {
+        setLoading(true);
+        const [cRes, aRes, fRes] = await Promise.all([
+            supabase.from('campaigns').select('*'),
+            supabase.from('articles').select('*'),
+            supabase.from('folders').select('*')
+        ]);
+
+        if (cRes.data) {
+            setCampaigns(cRes.data.map(c => ({
+                ...c,
+                inviteCode: c.invite_code
+            })));
+        }
+        if (aRes.data) setArticles(aRes.data);
+        if (fRes.data) setFolders(fRes.data);
+        setLoading(false);
+    };
+
+    fetchAll();
+
+    // Realtime Subscriptions
+    const articleChannel = supabase.channel('article-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+                setArticles(prev => [payload.new as ArticleData, ...prev]);
+            } else if (payload.eventType === 'UPDATE') {
+                setArticles(prev => prev.map(a => a.id === payload.new.id ? payload.new as ArticleData : a));
+            } else if (payload.eventType === 'DELETE') {
+                setArticles(prev => prev.filter(a => a.id !== payload.old.id));
+            }
+        }).subscribe();
+
+    const folderChannel = supabase.channel('folder-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'folders' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+                setFolders(prev => [...prev, payload.new as Folder]);
+            } else if (payload.eventType === 'UPDATE') {
+                setFolders(prev => prev.map(f => f.id === payload.new.id ? payload.new as Folder : f));
+            } else if (payload.eventType === 'DELETE') {
+                setFolders(prev => prev.filter(f => f.id !== payload.old.id));
+            }
+        }).subscribe();
+
+    return () => {
+        supabase.removeChannel(articleChannel);
+        supabase.removeChannel(folderChannel);
+    };
   }, [username]);
 
   const updateCampaign = async (updated: CampaignWiki) => {
     const { error } = await supabase.from('campaigns').update(updated).eq('id', updated.id);
     if (error) console.warn('Supabase campaign update failed:', error);
-
-    const newList = campaigns.map(c => c.id === updated.id ? updated : c);
-    setCampaigns(newList);
-    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(newList));
   };
 
   const softDeleteCampaign = async (id: string) => {
-    const updated = campaigns.map((c) =>
-        c.id === id ? { ...c, isDeleted: true, deletedAt: new Date().toISOString() } : c
-    );
-    setCampaigns(updated);
-    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+    const { error } = await supabase.from('campaigns').update({ 
+        isDeleted: true, 
+        deletedAt: new Date().toISOString() 
+    }).eq('id', id);
+    if (error) console.warn('Supabase campaign soft delete failed:', error);
   };
 
   const restoreCampaign = async (id: string) => {
-    const updated = campaigns.map((c) =>
-        c.id === id ? { ...c, isDeleted: false, deletedAt: undefined } : c
-    );
-    setCampaigns(updated);
-    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+    const { error } = await supabase.from('campaigns').update({ 
+        isDeleted: false, 
+        deletedAt: null 
+    }).eq('id', id);
+    if (error) console.warn('Supabase campaign restore failed:', error);
   };
-
-  const cleanupExpiredCampaigns = useCallback(() => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const updated = campaigns.filter(c => 
-        !c.isDeleted || (c.deletedAt && new Date(c.deletedAt) > thirtyDaysAgo)
-    );
-    
-    if (updated.length !== campaigns.length) {
-        setCampaigns(updated);
-        window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
-    }
-  }, [campaigns]);
-
-  useEffect(() => {
-    cleanupExpiredCampaigns();
-  }, [cleanupExpiredCampaigns]);
 
   const activeCampaigns = campaigns.filter(c => !c.isDeleted);
   const archivedCampaigns = campaigns.filter(c => c.isDeleted);
 
   const createCampaign = async (title: string, description: string) => {
     if (!username) return null;
-    if (userCampaigns.length >= 10) throw new Error('Maximum limit of 10 campaigns reached.');
-
     const newCampaign: CampaignWiki = {
       id: `${Date.now()}`,
       slug: generateSlug(title),
@@ -124,16 +118,13 @@ export function useCampaign(username?: string) {
 
     const { error } = await supabase.from('campaigns').insert([newCampaign]);
     if (error) console.warn('Supabase campaign save failed:', error);
-
-    const updated = [...campaigns, newCampaign];
-    setCampaigns(updated);
-    window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
     return newCampaign;
   };
 
   const getCampaignBySlug = useCallback((slug: string) => campaigns.find(c => c.slug === slug), [campaigns]);   
 
   const createArticle = async (campaignId: string, payload: Partial<ArticleData>) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to create articles.');
     const now = new Date().toISOString();
     const article: ArticleData = {
       id: `${campaignId}:${payload.id || Date.now()}`,
@@ -155,67 +146,98 @@ export function useCampaign(username?: string) {
 
     const { error } = await supabase.from('articles').insert([article]);
     if (error) console.warn('Supabase article save failed:', error);
-
-    const updated = [article, ...articles];
-    setArticles(updated);
-    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
     return article;
+  };
+
+  const updateArticle = async (updated: ArticleData) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to update articles.');
+    const { error } = await supabase.from('articles').update({
+        ...updated,
+        updatedAt: new Date().toISOString(),
+        slug: generateSlug(updated.title)
+    }).eq('id', updated.id);
+    if (error) console.warn('Supabase article update failed:', error);
+  };
+
+  const deleteArticle = async (id: string) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to delete articles.');
+    const { error } = await supabase.from('articles').delete().eq('id', id);
+    if (error) console.warn('Supabase article delete failed:', error);
+  };
+
+  const softDeleteArticle = async (id: string) => {
+      if (!isGM) throw new Error('Unauthorized');
+      const { error } = await supabase.from('articles').update({
+          isDeleted: true,
+          deletedAt: new Date().toISOString()
+      }).eq('id', id);
+      if (error) console.warn('Soft delete failed:', error);
+  };
+
+  const restoreArticle = async (id: string) => {
+      if (!isGM) throw new Error('Unauthorized');
+      const { error } = await supabase.from('articles').update({
+          isDeleted: false,
+          deletedAt: null
+      }).eq('id', id);
+      if (error) console.warn('Restore failed:', error);
+  };
+
+  const toggleHidden = async (id: string) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to toggle visibility.');
+    const article = articles.find(a => a.id === id);
+    if (article) {
+        await updateArticle({ ...article, hidden: !article.hidden });
+    }
   };
 
   const getArticlesForCampaign = useCallback((campaignId: string) => {
     return articles.filter(a => a.id.startsWith(`${campaignId}:`));
   }, [articles]);
 
-  const updateArticle = (updated: ArticleData) => {
-    setArticles((current) =>
-      current.map((article) =>
-        article.id === updated.id ? { ...updated, updatedAt: new Date().toISOString(), slug: generateSlug(updated.title) } : article
-      )
-    );
-    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(articles));
-  };
-
-  const deleteArticle = (id: string) => {
-    const updated = articles.filter((article) => article.id !== id);
-    setArticles(updated);
-    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
-  };
-
-  const toggleHidden = (id: string) => {
-    const updated = articles.map((article) =>
-        article.id === id ? { ...article, hidden: !article.hidden, updatedAt: new Date().toISOString() } : article
-    );
-    setArticles(updated);
-    window.localStorage.setItem(ARTICLES_KEY, JSON.stringify(updated));
-  };
-
   const createFolder = async (campaignId: string, name: string, parentId: string | null = null) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to create folders.');
     const newFolder: Folder = {
         id: `folder-${Date.now()}`,
         name,
         parentId,
-        campaignId
+        campaignId,
+        visibility: 'all'
     };
     
     const { error } = await supabase.from('folders').insert([newFolder]);
     if (error) console.warn('Supabase folder save failed:', error);
-
-    const updated = [...folders, newFolder];
-    setFolders(updated);
-    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(updated));
     return newFolder;
   };
 
-  const updateFolder = (updated: Folder) => {
-    const newList = folders.map(f => f.id === updated.id ? updated : f);
-    setFolders(newList);
-    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(newList));
+  const updateFolder = async (updated: Folder) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to update folders.');
+    const { error } = await supabase.from('folders').update(updated).eq('id', updated.id);
+    if (error) console.warn('Supabase folder update failed:', error);
   };
 
-  const deleteFolder = (id: string) => {
-    const newList = folders.filter(f => f.id !== id);
-    setFolders(newList);
-    window.localStorage.setItem(FOLDERS_KEY, JSON.stringify(newList));
+  const deleteFolder = async (id: string) => {
+    if (!isGM) throw new Error('Unauthorized: GM role required to delete folders.');
+    const { error } = await supabase.from('folders').delete().eq('id', id);
+    if (error) console.warn('Supabase folder delete failed:', error);
+  };
+
+  const softDeleteFolder = async (id: string) => {
+      if (!isGM) throw new Error('Unauthorized');
+      const { error } = await supabase.from('folders').update({
+          isDeleted: true,
+          deletedAt: new Date().toISOString()
+      }).eq('id', id);
+      if (error) console.warn('Folder soft delete failed:', error);
+  };
+
+  const restoreFolder = async (id: string) => {
+      if (!isGM) throw new Error('Unauthorized');
+      const { error } = await supabase.from('folders').update({
+          isDeleted: false,
+          deletedAt: null
+      }).eq('id', id);
+      if (error) console.warn('Folder restore failed:', error);
   };
 
   const getFoldersForCampaign = useCallback((campaignId: string) => {
@@ -243,10 +265,14 @@ export function useCampaign(username?: string) {
     createArticle,
     updateArticle,
     deleteArticle,
+    softDeleteArticle,
+    restoreArticle,
     toggleHidden,
     createFolder,
     updateFolder,
     deleteFolder,
+    softDeleteFolder,
+    restoreFolder,
     getFoldersForCampaign,
   };
 }
