@@ -158,7 +158,8 @@ export function useAuth() {
     const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
     const { error } = await supabase.from('invite_codes').insert([{ code, wiki_id: wikiId }]);
     if (error) {
-        setInviteMessage('Failed to generate invite code.');
+        console.error('Supabase invite generation error:', error);
+        setInviteMessage('Failed to generate invite code: ' + error.message);
         return;
     }
     setInviteMessage('Access Key generated: ' + code);
