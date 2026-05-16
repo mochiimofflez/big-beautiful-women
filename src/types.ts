@@ -78,7 +78,7 @@ export type CampaignWiki = {
 export type UserProfile = {
   username: string;
   password: string;
-  role: 'admin' | 'reader';
+  role: 'admin' | 'gm' | 'reader' | 'guest';
   unlockedWikis: string[];
   avatarUrl?: string;
 };
