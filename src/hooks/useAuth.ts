@@ -145,6 +145,7 @@ export function useAuth() {
 
   const logout = () => {
     setUser(null);
+    window.localStorage.removeItem(CURRENT_USER_KEY);
     setShowLogin(true);
     setAuthMessage('');
   };
