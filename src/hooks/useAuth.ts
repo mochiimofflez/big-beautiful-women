@@ -38,16 +38,22 @@ export function useAuth() {
       let initialProfiles: UserProfile[] = [];
       try {
         const { data: remoteProfiles, error } = await supabase.from('profiles').select('*');
-        if (!error && remoteProfiles) {
+        if (error) {
+          console.error('Supabase profile fetch error:', error);
+        } else if (remoteProfiles) {
           initialProfiles = remoteProfiles;
-        } else {
-          console.warn('Supabase profile load failed:', error);
-          const raw = window.localStorage.getItem(PROFILES_KEY);
-          initialProfiles = raw ? JSON.parse(raw) : [];
+        }
+        
+        // If remote is empty or failed, try localStorage
+        if (initialProfiles.length === 0) {
+            console.warn('Supabase profiles empty or failed, trying localStorage');
+            const raw = window.localStorage.getItem(PROFILES_KEY);
+            if (raw) initialProfiles = JSON.parse(raw);
         }
       } catch (e) {
+        console.error('Exception during profile fetch:', e);
         const raw = window.localStorage.getItem(PROFILES_KEY);
-        initialProfiles = raw ? JSON.parse(raw) : [];
+        if (raw) initialProfiles = JSON.parse(raw);
       }
 
       // Ensure SYSTEM is always present
