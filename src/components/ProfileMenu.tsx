@@ -49,7 +49,7 @@ export function ProfileMenu() {
           <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Status</button>
           <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Settings</button>
           {auth.user.role === 'admin' && (
-            <Link to='/Admin' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-amber-500' onClick={() => setIsOpen(false)}>Admin Panel</Link>
+            <Link to='/Admin' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-amber-500' onClick={() => setIsOpen(false)}>Manage Site</Link>
           )}
           <button type='button' onClick={() => { auth.logout(); setIsOpen(false); navigate('/Library'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
         </div>
