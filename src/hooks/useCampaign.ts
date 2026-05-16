@@ -18,6 +18,7 @@ export function useCampaign(username?: string, userRole?: string) {
   const [campaigns, setCampaigns] = useState<CampaignWiki[]>([]);
   const [articles, setArticles] = useState<ArticleData[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
+  const [campaignMemberships, setCampaignMemberships] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isGM = userRole === 'admin' || userRole === 'gm';
@@ -31,6 +32,11 @@ export function useCampaign(username?: string, userRole?: string) {
 
     const fetchAll = async () => {
         setLoading(true);
+        // Get user profile to see which wikis they have unlocked/joined
+        const { data: profile } = await supabase.from('profiles').select('unlocked_wikis').eq('username', username).single();
+        const unlocked = profile?.unlocked_wikis || [];
+        setCampaignMemberships(unlocked);
+
         const [cRes, aRes, fRes] = await Promise.all([
             supabase.from('campaigns').select('*'),
             supabase.from('articles').select('*'),
@@ -100,8 +106,14 @@ export function useCampaign(username?: string, userRole?: string) {
     if (error) console.warn('Supabase campaign restore failed:', error);
   };
 
-  const activeCampaigns = campaigns.filter(c => !c.isDeleted);
-  const archivedCampaigns = campaigns.filter(c => c.isDeleted);
+  const activeCampaigns = campaigns.filter(c => 
+    !c.isDeleted && 
+    (c.owner === username || campaignMemberships.includes(c.id))
+  );
+  const archivedCampaigns = campaigns.filter(c => 
+    c.isDeleted && 
+    (c.owner === username || campaignMemberships.includes(c.id))
+  );
 
   const createCampaign = async (title: string, description: string) => {
     if (!username) return null;
