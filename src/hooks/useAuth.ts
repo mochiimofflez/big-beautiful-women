@@ -111,6 +111,8 @@ export function useAuth() {
       setShowLogin(false);
       setAuthMessage('');
       return;
+    }
+
     // SIGN UP Flow
     if (existing) {
       setAuthMessage('This handle is already recorded in the archive.');
@@ -152,9 +154,6 @@ export function useAuth() {
     setShowLogin(false);
     setAuthMessage('');
     setInviteInput('');
-    setAuthMode('signin');
-    };
-    setAuthMode('signin'); // Reset to signin mode for consistency
   };
 
   const logout = () => {
