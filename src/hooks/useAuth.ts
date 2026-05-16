@@ -95,6 +95,7 @@ export function useAuth() {
         console.log('Login successful');
     }
   };
+  const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
