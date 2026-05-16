@@ -170,8 +170,15 @@ export function useAuth() {
   };
 
   const validateInviteCode = async (code: string, wikiId: string) => {
+      console.log('Validating code:', code, 'for wiki:', wikiId);
       const { data, error } = await supabase.from('invite_codes').select('*').eq('code', code).eq('wiki_id', wikiId).single();
-      if (error || !data || data.used || new Date(data.expires_at) < new Date()) {
+      if (error) {
+          console.error('Supabase validation error:', error);
+          setInviteMessage('Database error checking key.');
+          return false;
+      }
+      if (!data || data.used || new Date(data.expires_at) < new Date()) {
+          console.log('Validation failed:', { data, expired: data ? new Date(data.expires_at) < new Date() : 'n/a' });
           setInviteMessage('Invalid or expired Access Key.');
           return false;
       }
