@@ -95,15 +95,17 @@ export type Folder = {
 };
 
 /**
- * Data structure for a Campaign Wiki.
+ * Represents a single worldbuilding campaign wiki.
  */
 export type CampaignWiki = {
   id: string;
-  slug: string;
   title: string;
   description: string;
-  owner: string;
+  ownerId: string; // UUID in DB
   createdAt: string;
+  members: string[]; // Array of strings (usernames or IDs)
+  playerSheets: Record<string, any>;
+  items: any[];
   isDeleted?: boolean;
   deletedAt?: string;
   genres?: string[];

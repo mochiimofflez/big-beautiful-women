@@ -25,7 +25,11 @@ export function useCampaign(username?: string, userRole?: string) {
 
   const mapCampaign = (c: any): CampaignWiki => ({
     ...c,
+    ownerId: c.owner_id,
     createdAt: c.created_at,
+    playerSheets: c.player_sheets || {},
+    items: c.items || [],
+    members: c.members || [],
     isDeleted: c.is_deleted,
     deletedAt: c.deleted_at,
     customGenres: c.custom_genres || [],
@@ -36,11 +40,13 @@ export function useCampaign(username?: string, userRole?: string) {
 
   const mapCampaignToDB = (c: CampaignWiki) => ({
       id: c.id,
-      slug: c.slug,
       title: c.title,
       description: c.description,
-      owner: c.owner,
+      owner_id: c.ownerId,
       created_at: c.createdAt,
+      player_sheets: c.playerSheets,
+      items: c.items,
+      members: c.members,
       is_deleted: c.isDeleted,
       deleted_at: c.deletedAt,
       genres: c.genres,
@@ -58,8 +64,9 @@ export function useCampaign(username?: string, userRole?: string) {
 
     const fetchAll = async () => {
         setLoading(true);
-        // Get user profile to see which wikis they have unlocked/joined
-        const { data: profile } = await supabase.from('profiles').select('unlocked_wikis').eq('username', username).single();
+        // Get user profile to get their UUID and memberships
+        const { data: profile } = await supabase.from('profiles').select('id, unlocked_wikis').eq('username', username).single();
+        const userUuid = profile?.id;
         const unlocked = profile?.unlocked_wikis || [];
         setCampaignMemberships(unlocked);
 
@@ -144,22 +151,29 @@ export function useCampaign(username?: string, userRole?: string) {
 
   const activeCampaigns = campaigns.filter(c => 
     !c.isDeleted && 
-    (c.owner === username || campaignMemberships.includes(c.id))
+    (c.ownerId === username || campaignMemberships.includes(c.id))
   );
   const archivedCampaigns = campaigns.filter(c => 
     c.isDeleted && 
-    (c.owner === username || campaignMemberships.includes(c.id))
+    (c.ownerId === username || campaignMemberships.includes(c.id))
   );
 
   const createCampaign = async (title: string, description: string) => {
     if (!username) return null;
+    
+    // Get the user's UUID from the profile
+    const { data: profile } = await supabase.from('profiles').select('id').eq('username', username).single();
+    if (!profile?.id) throw new Error('Could not resolve user UUID for campaign creation.');
+
     const newCampaign: CampaignWiki = {
       id: `${Date.now()}`,
-      slug: generateSlug(title),
       title,
       description,
-      owner: username,
+      ownerId: profile.id,
       createdAt: new Date().toISOString(),
+      members: [],
+      playerSheets: {},
+      items: [],
       genres: [],
       customGenres: []
     };
