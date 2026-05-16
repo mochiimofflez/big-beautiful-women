@@ -33,11 +33,10 @@ export function AdminPage() {
         {invite && <p className='mt-2 text-sm text-stone/70'>Newly generated key: <strong className='text-amber-200'>{invite}</strong></p>}
       </div>
 
-      <h2 className='text-xl font-bold mb-4'>Archived Campaigns</h2>
       {campaignManager.archivedCampaigns.map((c: CampaignWiki) => (
-        <div key={c.id} className='flex justify-between p-4 border border-brass/20 rounded mb-2'>
+        <div key={c.slug} className='flex justify-between p-4 border border-brass/20 rounded mb-2'>
             <span>{c.title} (Deleted: {c.deletedAt ? new Date(c.deletedAt).toLocaleDateString() : 'N/A'})</span>
-            <button onClick={() => campaignManager.restoreCampaign(c.id)} className='text-brass'>Restore</button>
+            <button onClick={() => campaignManager.restoreCampaign(c.slug)} className='text-brass'>Restore</button>
         </div>
       ))}
     </div>

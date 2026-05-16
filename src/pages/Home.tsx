@@ -31,7 +31,7 @@ export function Home() {
         setNewCampaignDesc('');
         setSelectedGenres([]);
         setCustomGenre('');
-        navigate('/Campaigns/' + newC.id);
+        navigate('/Campaigns/' + newC.slug);
       }
     } catch (err: any) {
       alert(err.message);
@@ -50,7 +50,7 @@ export function Home() {
         alert('Campaign name does not match.');
         return;
     }
-    campaignManager.softDeleteCampaign(campaign.id);
+    campaignManager.softDeleteCampaign(campaign.slug);
     setDeleteConfirm(null);
     setDeleteInput('');
   };
@@ -59,9 +59,9 @@ export function Home() {
     <div className='min-h-screen bg-charcoal text-stone p-10'>
       {deleteConfirm && (
         <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4'>
-            <div className='bg-[#0d0b0b] border border-brass/20 p-8 rounded-3xl w-full max-w-sm'>
+            <div className='bg-[#0d0b0b] border border-brass/20 p-8 rounded-3xl w-full max-sm'>
                 <h2 className='text-xl text-amber-100 mb-4'>Delete Campaign?</h2>
-                <p className='text-sm text-stone/70 mb-4'>Enter the campaign title to confirm: <span className='text-brass font-bold'>{campaignManager.campaigns.find(c => c.id === deleteConfirm)?.title}</span></p>
+                <p className='text-sm text-stone/70 mb-4'>Enter the campaign title to confirm: <span className='text-brass font-bold'>{campaignManager.campaigns.find(c => c.slug === deleteConfirm)?.title}</span></p>
                 <input 
                     className='w-full p-2 bg-[#151313] border border-brass/20 rounded-lg mb-4 text-stone'
                     value={deleteInput}
@@ -69,7 +69,7 @@ export function Home() {
                 />
                 <div className='flex gap-2'>
                     <button onClick={() => setDeleteConfirm(null)} className='flex-1 p-2 rounded-lg bg-stone/10'>Cancel</button>
-                    <button onClick={() => handleDelete(campaignManager.campaigns.find(c => c.id === deleteConfirm))} className='flex-1 p-2 rounded-lg bg-red-900/20 text-red-300'>Delete</button>
+                    <button onClick={() => handleDelete(campaignManager.campaigns.find(c => c.slug === deleteConfirm))} className='flex-1 p-2 rounded-lg bg-red-900/20 text-red-300'>Delete</button>
                 </div>
             </div>
         </div>
@@ -147,20 +147,19 @@ export function Home() {
                 <p className='text-stone/50 italic'>No campaigns found in the library records.</p>
               ) : (
                 campaignManager.activeCampaigns.map(c => (
-                  <div key={c.id} className='relative group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md'>
-                      <Link to={'/Campaigns/' + c.id} className='block'>
+                  <div key={c.slug} className='relative group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md'>
+                      <Link to={'/Campaigns/' + c.slug} className='block'>
                         <div className='flex justify-between items-start mb-2'>
                           <h3 className='text-xl font-semibold text-amber-50'>{c.title}</h3>
-                          <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span> 
                         </div>
                         <p className='text-sm text-stone/70 line-clamp-2'>{c.description}</p>
                       </Link>
-                      {auth.user?.username === c.owner && (
+                      {auth.user?.id === c.ownerId && (
                         <button 
                           onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setDeleteConfirm(c.id);
+                              setDeleteConfirm(c.slug);
                           }}
                           className='absolute bottom-4 right-4 text-stone/30 hover:text-red-400'
                         >

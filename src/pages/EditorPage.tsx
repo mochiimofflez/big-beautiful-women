@@ -12,7 +12,7 @@ export function EditorPage() {
   const auth = useAuth();
   const campaignManager = useCampaign(auth.user?.username);
 
-  const currentCampaign = campaignManager.campaigns.find(c => c.id === campaignId);
+  const currentCampaign = campaignManager.campaigns.find(c => c.slug === campaignId);
   const article = articleId ? campaignManager.articles.find(a => a.id === articleId) : null;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -24,9 +24,9 @@ export function EditorPage() {
         if (article) {
             await campaignManager.updateArticle(articleData);
         } else {
-            await campaignManager.createArticle(currentCampaign.id, articleData);
+            await campaignManager.createArticle(currentCampaign.slug, articleData);
         }
-        navigate(`/Campaigns/${currentCampaign.id}`);
+        navigate(`/Campaigns/${currentCampaign.slug}`);
     } catch (e) {
         console.error(e);
         setIsSaving(false);

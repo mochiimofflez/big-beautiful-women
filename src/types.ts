@@ -98,7 +98,7 @@ export type Folder = {
  * Represents a single worldbuilding campaign wiki.
  */
 export type CampaignWiki = {
-  id: string;
+  slug: string; // Primary Key
   title: string;
   description: string;
   ownerId: string; // UUID in DB

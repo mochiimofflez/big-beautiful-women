@@ -19,12 +19,14 @@ export function useCampaign(username?: string, userRole?: string) {
   const [articles, setArticles] = useState<ArticleData[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [campaignMemberships, setCampaignMemberships] = useState<string[]>([]);
+  const [userUuid, setUserUuid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isGM = userRole === 'admin' || userRole === 'gm';
 
   const mapCampaign = (c: any): CampaignWiki => ({
     ...c,
+    slug: c.id, // Primary Key column 'id' contains slug values
     ownerId: c.owner_id,
     createdAt: c.created_at,
     playerSheets: c.player_sheets || {},
@@ -39,7 +41,7 @@ export function useCampaign(username?: string, userRole?: string) {
   });
 
   const mapCampaignToDB = (c: CampaignWiki) => ({
-      id: c.id,
+      id: c.slug, // Map 'slug' property to 'id' column
       title: c.title,
       description: c.description,
       owner_id: c.ownerId,
@@ -66,9 +68,11 @@ export function useCampaign(username?: string, userRole?: string) {
         setLoading(true);
         // Get user profile to get their UUID and memberships
         const { data: profile } = await supabase.from('profiles').select('id, unlocked_wikis').eq('username', username).single();
-        const userUuid = profile?.id;
-        const unlocked = profile?.unlocked_wikis || [];
-        setCampaignMemberships(unlocked);
+        if (profile) {
+            setUserUuid(profile.id);
+            const unlocked = profile.unlocked_wikis || [];
+            setCampaignMemberships(unlocked);
+        }
 
         const [cRes, aRes, fRes] = await Promise.all([
             supabase.from('campaigns').select('*'),
@@ -114,9 +118,9 @@ export function useCampaign(username?: string, userRole?: string) {
             if (payload.eventType === 'INSERT') {
                 setCampaigns(prev => [mapCampaign(payload.new), ...prev]);
             } else if (payload.eventType === 'UPDATE') {
-                setCampaigns(prev => prev.map(c => c.id === payload.new.id ? mapCampaign(payload.new) : c));
+                setCampaigns(prev => prev.map(c => c.slug === payload.new.id ? mapCampaign(payload.new) : c));
             } else if (payload.eventType === 'DELETE') {
-                setCampaigns(prev => prev.filter(c => c.id !== payload.old.id));
+                setCampaigns(prev => prev.filter(c => c.slug !== payload.old.id));
             }
         }).subscribe();
 
@@ -129,47 +133,44 @@ export function useCampaign(username?: string, userRole?: string) {
 
   const updateCampaign = async (updated: CampaignWiki) => {
     const dbData = mapCampaignToDB(updated);
-    const { error } = await supabase.from('campaigns').update(dbData).eq('id', updated.id);
+    const { error } = await supabase.from('campaigns').update(dbData).eq('id', updated.slug);
     if (error) console.warn('Supabase campaign update failed:', error);
   };
 
-  const softDeleteCampaign = async (id: string) => {
+  const softDeleteCampaign = async (slug: string) => {
     const { error } = await supabase.from('campaigns').update({ 
         is_deleted: true, 
         deleted_at: new Date().toISOString() 
-    }).eq('id', id);
+    }).eq('id', slug);
     if (error) console.warn('Supabase campaign soft delete failed:', error);
   };
 
-  const restoreCampaign = async (id: string) => {
+  const restoreCampaign = async (slug: string) => {
     const { error } = await supabase.from('campaigns').update({ 
         is_deleted: false, 
         deleted_at: null 
-    }).eq('id', id);
+    }).eq('id', slug);
     if (error) console.warn('Supabase campaign restore failed:', error);
   };
 
   const activeCampaigns = campaigns.filter(c => 
     !c.isDeleted && 
-    (c.ownerId === username || campaignMemberships.includes(c.id))
+    (c.ownerId === userUuid || campaignMemberships.includes(c.slug))
   );
   const archivedCampaigns = campaigns.filter(c => 
     c.isDeleted && 
-    (c.ownerId === username || campaignMemberships.includes(c.id))
+    (c.ownerId === userUuid || campaignMemberships.includes(c.slug))
   );
 
   const createCampaign = async (title: string, description: string) => {
-    if (!username) return null;
+    if (!username || !userUuid) throw new Error('User not authenticated.');
     
-    // Get the user's UUID from the profile
-    const { data: profile } = await supabase.from('profiles').select('id').eq('username', username).single();
-    if (!profile?.id) throw new Error('Could not resolve user UUID for campaign creation.');
-
+    const slug = generateSlug(title);
     const newCampaign: CampaignWiki = {
-      id: `${Date.now()}`,
+      slug,
       title,
       description,
-      ownerId: profile.id,
+      ownerId: userUuid,
       createdAt: new Date().toISOString(),
       members: [],
       playerSheets: {},
@@ -180,6 +181,7 @@ export function useCampaign(username?: string, userRole?: string) {
 
     const { error } = await supabase.from('campaigns').insert([mapCampaignToDB(newCampaign)]);
     if (error) {
+        if (error.code === '23505') throw new Error('A campaign with this title already exists.');
         console.error('Supabase campaign save failed:', error);
         throw new Error('Failed to establish campaign in database: ' + error.message);
     }
@@ -336,8 +338,8 @@ export function useCampaign(username?: string, userRole?: string) {
     return folders.filter(f => f.campaignId === campaignId);
   }, [folders]);
 
-  const userCampaigns = activeCampaigns.filter(c => c.owner === username);
-  const invitedCampaigns = activeCampaigns.filter(c => c.owner !== username);
+  const userCampaigns = activeCampaigns.filter(c => c.ownerId === userUuid);
+  const invitedCampaigns = activeCampaigns.filter(c => c.ownerId !== userUuid);
 
   return {
     campaigns, // Keep the full list for lookup in WikiView

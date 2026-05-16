@@ -105,16 +105,16 @@ export function WikiView() {
   const [globalSettings, setGlobalSettings] = useState({ disableAnimations: false });
 
   const currentCampaign = useMemo(() =>
-    campaignId ? campaignManager.campaigns.find(c => c.id === campaignId || c.slug === campaignId) : null
+    campaignId ? campaignManager.campaigns.find(c => c.slug === campaignId) : null
   , [campaignId, campaignManager.campaigns]);
 
   const campaignArticles = useMemo(() =>
-    currentCampaign ? campaignManager.getArticlesForCampaign(currentCampaign.id) : []
+    currentCampaign ? campaignManager.getArticlesForCampaign(currentCampaign.slug) : []
   , [currentCampaign, campaignManager.articles]);
 
   const visibleArticles = useMemo(
     () => {
-        let filtered = campaignArticles.filter((a: ArticleData) => !a.hidden || (auth.user?.role === 'admin' || currentCampaign?.owner === auth.user?.username));
+        let filtered = campaignArticles.filter((a: ArticleData) => !a.hidden || (auth.user?.role === 'admin' || currentCampaign?.ownerId === auth.user?.id));
         if (isPlayerView) filtered = filtered.filter((a: ArticleData) => !a.hidden);
         
         if (query) {
@@ -138,9 +138,9 @@ export function WikiView() {
 
   useEffect(() => {
     if (activeTabId && currentCampaign) {
-      navigate(`/Campaigns/${currentCampaign.id}/${activeTabId}`, { replace: true });
+      navigate(`/Campaigns/${currentCampaign.slug}/${activeTabId}`, { replace: true });
     } else if (currentCampaign) {
-      navigate(`/Campaigns/${currentCampaign.id}`, { replace: true });
+      navigate(`/Campaigns/${currentCampaign.slug}`, { replace: true });
     }
   }, [activeTabId, currentCampaign, navigate]);
 
@@ -159,7 +159,7 @@ export function WikiView() {
     }
   };
 
-  const canManage = auth.user?.role === 'admin' || currentCampaign?.owner === auth.user?.username;
+  const canManage = auth.user?.role === 'admin' || currentCampaign?.ownerId === auth.user?.id;
 
   const saveToHistory = useCallback((article: ArticleData) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -443,7 +443,7 @@ export function WikiView() {
                     <SearchBar query={query} onSearch={setQuery} />
                     <ArticleList
                         articles={visibleArticles}
-                        folders={campaignManager.getFoldersForCampaign(currentCampaign.id)}
+                        folders={campaignManager.getFoldersForCampaign(currentCampaign.slug)}
                         activeArticleId={activeTabId}
                         query={query}
                         canManage={canManage && !isPlayerView}
@@ -496,7 +496,7 @@ export function WikiView() {
                         onImportFolder={handleImportFolder}
                         onToggleFavorite={toggleFavorite}
                         onToggleHidden={campaignManager.toggleHidden}
-                        onCreateFolder={(name) => campaignManager.createFolder(currentCampaign.id, name)}
+                        onCreateFolder={(name) => campaignManager.createFolder(currentCampaign.slug, name)}
                     />
                 </div>
             ) : (
