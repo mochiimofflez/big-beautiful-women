@@ -88,32 +88,40 @@ export function useAuth() {
   };
 
   const handleLogin = async (handleOrEmail: string, password: string) => {
-    let email = handleOrEmail;
+    let emailToUse = handleOrEmail;
 
-    // Explicitly check for @ to determine if it's an email
+    // If it doesn't look like an email, try to resolve username to email
     if (!handleOrEmail.includes('@')) {
         console.log('Resolving handle to email:', handleOrEmail);
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('email')
             .eq('username', handleOrEmail)
-            .single();
+            .maybeSingle();
 
-        if (profileError || !profile) {
-            console.error('Handle resolution failed:', profileError);
-            setAuthMessage('Handle not found.');
+        if (profileError) {
+            console.error('Handle resolution database error:', profileError);
+            setAuthMessage('Database error during lookup.');
             return;
         }
-        email = profile.email;
+
+        if (profile?.email) {
+            emailToUse = profile.email;
+        } else {
+            // If no profile with that username exists, we still try to login as email
+            // just in case it's a weird email format, but usually this means handle not found
+            console.warn('No email found for handle:', handleOrEmail);
+        }
     }
 
-    console.log('Attempting Supabase sign in with email:', email);
-
-    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+    console.log('Attempting login for:', emailToUse);
+    const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
+    
     if (error) {
         console.error('Supabase Login Error:', error);
         setAuthMessage(error.message);
     } else {
+        setAuthMessage('');
         console.log('Login successful');
     }
   };
