@@ -110,12 +110,6 @@ export function WikiView() {
                 <button onClick={() => setIsSidebarOpen(false)} className='text-brass'>«</button>
             </div>
 
-            {auth.user && (
-                <div className='mb-6'>
-                    <ProfileMenu />
-                </div>
-            )}
-
             <h1 className='text-2xl font-semibold text-amber-200 mb-6'>{currentCampaign.title}</h1>
 
             <div className='mb-8'>
@@ -167,6 +161,9 @@ export function WikiView() {
       )}
 
       <main className='flex-1 p-10 overflow-y-auto'>
+        <div className='absolute top-6 right-6 z-50'>
+            {auth.user && <ProfileMenu />}
+        </div>
         {!isSidebarOpen && (
             <button onClick={() => setIsSidebarOpen(true)} className='fixed top-10 left-6 text-brass text-2xl z-10'>»</button>
         )}
