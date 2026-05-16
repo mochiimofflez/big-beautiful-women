@@ -72,7 +72,7 @@ export function useAuth() {
     if (!handleOrEmail.includes('@')) {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('email') // Assumes profiles table has an email field
+            .select('email')
             .eq('username', handleOrEmail)
             .single();
         
@@ -81,8 +81,11 @@ export function useAuth() {
         }
     }
 
+    console.log('Attempting sign in with:', { email, passwordLength: password.length });
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+        console.error('Supabase Login Error Detail:', error);
         setAuthMessage(error.message);
     }
   };
