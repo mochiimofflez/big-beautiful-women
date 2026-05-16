@@ -88,7 +88,7 @@ export function useCampaign(username?: string) {
     return newCampaign;
   };
 
-  const getCampaignBySlug = useCallback((slug: string) => campaigns.find(c => c.slug === slug), [campaigns]);
+  const getCampaignBySlug = useCallback((slug: string) => campaigns.find(c => c.slug === slug), [campaigns]);   
 
   const createArticle = async (campaignId: string, payload: ArticleData) => {
     const now = new Date().toISOString();
@@ -134,12 +134,14 @@ export function useCampaign(username?: string) {
   };
 
   const userCampaigns = activeCampaigns.filter(c => c.owner === username);
+  const invitedCampaigns = activeCampaigns.filter(c => c.owner !== username);
 
   return {
     campaigns,
     activeCampaigns,
     archivedCampaigns,
     userCampaigns,
+    invitedCampaigns,
     articles,
     createCampaign,
     softDeleteCampaign,

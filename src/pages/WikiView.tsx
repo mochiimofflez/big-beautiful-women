@@ -17,20 +17,21 @@ export function WikiView() {
   const navigate = useNavigate();
   const auth = useAuth();
   const campaignManager = useCampaign(auth.user?.username);
-  
+
   const [query, setQuery] = useState('');
   const [isPlayerView, setIsPlayerView] = useState(false);
   const [activeTab, setActiveTab] = useState<'articles' | 'notes'>('articles');
   const [dragMode, setDragMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [history, setHistory] = useState<ArticleData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  const currentCampaign = useMemo(() => 
+  const currentCampaign = useMemo(() =>
     campaignId ? campaignManager.campaigns.find(c => c.id === campaignId) : null
   , [campaignId, campaignManager.campaigns]);
 
-  const campaignArticles = useMemo(() => 
+  const campaignArticles = useMemo(() =>
     currentCampaign ? campaignManager.getArticlesForCampaign(currentCampaign.id) : []
   , [currentCampaign, campaignManager.articles]);
 
@@ -38,7 +39,7 @@ export function WikiView() {
     () => {
         let filtered = campaignArticles.filter((a) => !a.hidden || auth.isGM);
         if (isPlayerView) filtered = filtered.filter(a => !a.hidden);
-        return filtered.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return filtered.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());       
     },
     [campaignArticles, auth.isGM, isPlayerView]
   );
@@ -106,7 +107,7 @@ export function WikiView() {
   if (articleSlug && !activeArticle) return <NotFoundArticlePage />;
 
   return (
-    <div className="flex h-screen bg-charcoal text-stone">
+    <div className='flex h-screen bg-charcoal text-stone'>
       <AuthFrame
         show={auth.showLogin}
         mode={auth.authMode}
@@ -121,83 +122,87 @@ export function WikiView() {
         onInviteInputChange={auth.setInviteInput}
         onSubmit={auth.handleLogin}
       />
-      <aside className="shrink-0 border-r border-brass/10 bg-[#101010] p-6 w-[320px] overflow-y-auto">
-        {!auth.user && (
-            <button onClick={() => auth.toggleLoginForm('signin')} className="w-full mb-6 p-2 rounded-2xl border border-brass/20 text-brass hover:bg-brass/10">Sign In</button>
-        )}
-        {auth.user && (
-          <div className="relative mb-6">
-            <div className="flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313]">
-              <Link to={`/Users/${auth.user.username}`} className="flex items-center gap-3 flex-1">
-                <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className="h-10 w-10 rounded-full object-cover" />
-                <span className="text-stone font-medium">{auth.user.username}</span>
-              </Link>
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 text-stone hover:text-brass">â€¢â€¢â€¢</button>
+      {isSidebarOpen && (
+        <aside className='shrink-0 border-r border-brass/10 bg-[#101010] p-6 w-[320px] overflow-y-auto'>
+            <div className='flex justify-between mb-6'>
+                <Link to='/' className='text-xs uppercase tracking-[0.35em] text-brass/70'>Grand Library</Link>
+                <button onClick={() => setIsSidebarOpen(false)} className='text-brass'>«</button>
             </div>
-            {isMenuOpen && (
-                <div className="absolute top-16 left-0 w-full bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-10">
-                    <label className="block w-full text-left p-2 hover:bg-brass/10 rounded cursor-pointer">
-                        Change Picture
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => auth.updateAvatar(reader.result as string);
-                                reader.readAsDataURL(file);
-                            }
-                        }} />
-                    </label>
-                    <button className="block w-full text-left p-2 hover:bg-brass/10 rounded">Settings</button>
-                    <button onClick={() => { auth.logout(); navigate('/'); }} className="block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded">Logout</button>
+            
+            {auth.user && (
+            <div className='relative mb-6'>
+                <div className='flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313]'>       
+                <Link to={`/Users/${auth.user.username}`} className='flex items-center gap-3 flex-1'>
+                    <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' />
+                    <span className='text-stone font-medium'>{auth.user.username}</span>
+                </Link>
+                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className='p-2 text-stone hover:text-brass'>•••</button>
+                </div>
+                {isMenuOpen && (
+                    <div className='absolute top-16 left-0 w-full bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-10'>
+                        <button onClick={() => { auth.logout(); navigate('/Library'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
+                    </div>
+                )}
+            </div>
+            )}
+            
+            <h1 className='text-2xl font-semibold text-amber-200 mb-6'>{currentCampaign.title}</h1>
+            
+            <div className='mb-8'>
+                <h3 className='text-[10px] uppercase tracking-widest text-brass/50 mb-3'>My Campaigns</h3>
+                <div className='space-y-1'>
+                    {campaignManager.invitedCampaigns.map(c => (
+                        <Link key={c.id} to={`/Campaigns/${c.id}`} className='block text-sm text-stone hover:text-amber-200 p-1'>{c.title}</Link>
+                    ))}
+                </div>
+            </div>
+
+            <div className='flex gap-4 mb-4'>
+                <button onClick={() => setActiveTab('articles')} className={activeTab === 'articles' ? 'text-brass' : 'text-stone'}>Recent Articles</button>
+                <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'}>Notes</button>
+            </div>
+
+            {canManage && (
+                <div className='mb-6 border-t border-brass/10 pt-4'>
+                    <h3 className='text-[10px] uppercase tracking-widest text-brass/50 mb-3'>Campaign Management</h3>
+                    <div className='space-y-2'>
+                        <button onClick={() => setIsPlayerView(!isPlayerView)} className='w-full text-xs text-stone border border-stone/20 p-2 rounded'>{isPlayerView ? 'Return to GM' : 'Player Mode'}</button>
+                        <button onClick={() => navigate(`/Campaigns/${campaignId}/editor`)} className='w-full text-xs text-brass border border-brass/20 p-2 rounded'>Create Article</button>
+                        <button onClick={() => alert(`Campaign Invite: ${auth.generateInviteCode(campaignId!)}`)} className='w-full text-xs text-brass border border-brass/20 p-2 rounded'>Generate Invite</button>
+                    </div>
                 </div>
             )}
-          </div>
-        )}
-        <Link to="/" className="block mb-6 text-xs uppercase tracking-[0.35em] text-brass/70">Grand Library</Link>
-        <h1 className="text-2xl font-semibold text-amber-200 mb-6">{currentCampaign.title}</h1>
-        
-        <div className="flex gap-4 mb-4">
-            <button onClick={() => setActiveTab('articles')} className={activeTab === 'articles' ? 'text-brass' : 'text-stone'}>Recent Articles</button>
-            <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'}>Notes</button>
-        </div>
 
-        {canManage && (
-            <div className="mb-6 border-t border-brass/10 pt-4">
-                <h3 className="text-[10px] uppercase tracking-widest text-brass/50 mb-3">Campaign Management</h3>
-                <div className="space-y-2">
-                    <button onClick={() => setIsPlayerView(!isPlayerView)} className="w-full text-xs text-stone border border-stone/20 p-2 rounded">{isPlayerView ? 'Return to GM' : 'Player Mode'}</button>
-                    <button onClick={() => navigate(`/Campaigns/${campaignId}/editor`)} className="w-full text-xs text-brass border border-brass/20 p-2 rounded">Create Article</button>
-                    <button onClick={() => alert(`Campaign Invite: ${auth.generateInviteCode(campaignId!)}`)} className="w-full text-xs text-brass border border-brass/20 p-2 rounded">Generate Invite</button>
+            {activeTab === 'articles' ? (
+                <div className='space-y-4'>
+                    <SearchBar query={query} onSearch={setQuery} />
+                    <ArticleList
+                        articles={visibleArticles}
+                        activeArticleId={activeArticle?.id ?? null}
+                        selectedSection='All'
+                        query={query}
+                        canManage={canManage && !isPlayerView}
+                        onSelect={(id) => navigate(`/Campaigns/${campaignId}/${visibleArticles.find(a => a.id === id)?.slug}`)}
+                        onEdit={(a) => navigate(`/Campaigns/${campaignId}/editor/${a.id}`)}
+                        onDelete={campaignManager.deleteArticle}
+                        onToggleHidden={campaignManager.toggleHidden}
+                    />
                 </div>
-            </div>
-        )}
+            ) : (
+                <div className='text-sm p-4 border border-brass/10 rounded-2xl space-y-4'>
+                    <div>Shared Campaign Notes</div>
+                </div>
+            )}
+        </aside>
+      )}
 
-        {activeTab === 'articles' ? (
-            <div className="space-y-4">
-                <SearchBar query={query} onSearch={setQuery} />
-                <ArticleList
-                    articles={visibleArticles}
-                    activeArticleId={activeArticle?.id ?? null}
-                    selectedSection="All"
-                    query={query}
-                    canManage={canManage && !isPlayerView}
-                    onSelect={(id) => navigate(`/Campaigns/${campaignId}/${visibleArticles.find(a => a.id === id)?.slug}`)}
-                    onEdit={(a) => navigate(`/Campaigns/${campaignId}/editor/${a.id}`)}
-                    onDelete={campaignManager.deleteArticle}
-                    onToggleHidden={campaignManager.toggleHidden}
-                />
-            </div>
-        ) : (
-            <div className="text-sm p-4 border border-brass/10 rounded-2xl space-y-4">
-                <div>Shared Campaign Notes</div>
-            </div>
+      <main className='flex-1 p-10 overflow-y-auto'>
+        {!isSidebarOpen && (
+            <button onClick={() => setIsSidebarOpen(true)} className='fixed top-10 left-6 text-brass text-2xl z-10'>»</button>
         )}
-      </aside>
-
-      <main className="flex-1 p-10 overflow-y-auto">
         {canManage && !isPlayerView && (
              <button onClick={() => setDragMode(!dragMode)} className={`mb-4 p-2 rounded-full ${dragMode ? 'bg-amber-500/20 text-amber-500' : 'bg-brass/10 text-brass'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                <svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'></path></svg>
              </button>
         )}
         {activeArticle ? (
