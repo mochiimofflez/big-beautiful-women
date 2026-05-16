@@ -7,14 +7,21 @@ export function LandingPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [successMessage, setSuccessMessage] = useState('');
   
-  const handleLogin = async () => {
+  const handleSubmit = async () => {
     setSuccessMessage('');
-    const prevMode = auth.authMode;
-    await auth.handleLogin();
+    if (mode === 'signup') {
+        // Need to add handleSignUp to AuthFrame props too
+        await auth.handleSignUp(email, password, email);
+    } else {
+        await auth.handleLogin(email, password);
+    }
     if (auth.user) {
-        if (prevMode === 'signup') {
+        if (mode === 'signup') {
             setSuccessMessage('Successfully signed up!');
         }
         setTimeout(() => navigate('/Library'), 1500);
@@ -25,18 +32,18 @@ export function LandingPage() {
     <div className='min-h-screen bg-[#0d0b0b] flex items-center justify-center'>
       <AuthFrame
         show={true}
-        mode={auth.authMode}
-        username={auth.username}
-        password={auth.password}
+        mode={mode}
+        email={email}
+        password={password}
         inviteInput={auth.inviteInput}
         authMessage={auth.authMessage}
         successMessage={successMessage}
         onClose={() => {}}
-        onToggleMode={() => auth.setAuthMode(auth.authMode === 'signin' ? 'signup' : 'signin')}
-        onUsernameChange={auth.setUsername}
-        onPasswordChange={auth.setPassword}
+        onToggleMode={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
         onInviteInputChange={auth.setInviteInput}
-        onSubmit={handleLogin}
+        onSubmit={handleSubmit}
       />
     </div>
   );

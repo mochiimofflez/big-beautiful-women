@@ -1,14 +1,14 @@
 interface AuthFrameProps {
   show: boolean;
   mode: 'signin' | 'signup';
-  username: string;
+  email: string;
   password: string;
   inviteInput: string;
   authMessage: string;
   successMessage?: string;
   onClose: () => void;
   onToggleMode: () => void;
-  onUsernameChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onInviteInputChange: (value: string) => void;
   onSubmit: () => void;
@@ -17,14 +17,14 @@ interface AuthFrameProps {
 export function AuthFrame({
   show,
   mode,
-  username,
+  email,
   password,
   inviteInput,
   authMessage,
   successMessage,
   onClose,
   onToggleMode,
-  onUsernameChange,
+  onEmailChange,
   onPasswordChange,
   onInviteInputChange,
   onSubmit,
@@ -55,9 +55,9 @@ export function AuthFrame({
 
         <div className="space-y-4">
           <input
-            value={username}
-            onChange={(event) => onUsernameChange(event.target.value)}
-            placeholder="Handle"
+            value={email}
+            onChange={(event) => onEmailChange(event.target.value)}
+            placeholder="Email Handle"
             className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
           />
           <input
