@@ -7,8 +7,10 @@ export function LandingPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   
+  const [handleOrEmail, setHandleOrEmail] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState(''); // Need to track username for signup
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -16,9 +18,9 @@ export function LandingPage() {
     setSuccessMessage('');
     if (mode === 'signup') {
         // Need to add handleSignUp to AuthFrame props too
-        await auth.handleSignUp(email, password, email);
+        await auth.handleSignUp(username, password, email);
     } else {
-        await auth.handleLogin(email, password);
+        await auth.handleLogin(handleOrEmail, password);
     }
     if (auth.user) {
         if (mode === 'signup') {
@@ -33,6 +35,7 @@ export function LandingPage() {
       <AuthFrame
         show={true}
         mode={mode}
+        handleOrEmail={handleOrEmail}
         email={email}
         password={password}
         inviteInput={auth.inviteInput}
@@ -40,6 +43,7 @@ export function LandingPage() {
         successMessage={successMessage}
         onClose={() => {}}
         onToggleMode={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+        onHandleOrEmailChange={setHandleOrEmail}
         onEmailChange={setEmail}
         onPasswordChange={setPassword}
         onInviteInputChange={auth.setInviteInput}

@@ -65,7 +65,22 @@ export function useAuth() {
     setUser(data.user as any); // Simplification for migration
   };
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (handleOrEmail: string, password: string) => {
+    let email = handleOrEmail;
+    
+    // If it doesn't look like an email, try to resolve it from profiles
+    if (!handleOrEmail.includes('@')) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('email') // Assumes profiles table has an email field
+            .eq('username', handleOrEmail)
+            .single();
+        
+        if (profile) {
+            email = profile.email;
+        }
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
         setAuthMessage(error.message);

@@ -1,6 +1,7 @@
 interface AuthFrameProps {
   show: boolean;
   mode: 'signin' | 'signup';
+  handleOrEmail: string;
   email: string;
   password: string;
   inviteInput: string;
@@ -8,6 +9,7 @@ interface AuthFrameProps {
   successMessage?: string;
   onClose: () => void;
   onToggleMode: () => void;
+  onHandleOrEmailChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onInviteInputChange: (value: string) => void;
@@ -17,6 +19,7 @@ interface AuthFrameProps {
 export function AuthFrame({
   show,
   mode,
+  handleOrEmail,
   email,
   password,
   inviteInput,
@@ -24,6 +27,7 @@ export function AuthFrame({
   successMessage,
   onClose,
   onToggleMode,
+  onHandleOrEmailChange,
   onEmailChange,
   onPasswordChange,
   onInviteInputChange,
@@ -47,26 +51,43 @@ export function AuthFrame({
             </div>
             <p className="mt-2 text-sm text-stone/70">
               {mode === 'signin'
-                ? 'Enter your archive handle and secret phrase.'
+                ? 'Enter your archive handle or email and secret phrase.'
                 : 'Create a new reader record with a valid access key.'}
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <input
-            value={email}
-            onChange={(event) => onEmailChange(event.target.value)}
-            placeholder="Email Handle"
-            className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => onPasswordChange(event.target.value)}
-            placeholder="Secret phrase"
-            className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
-          />
+          {mode === 'signin' ? (
+            <input
+              value={handleOrEmail}
+              onChange={(event) => onHandleOrEmailChange(event.target.value)}
+              placeholder="Handle or Email"
+              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+            />
+          ) : (
+            <input
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="Email Address"
+              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+            />
+          {mode === 'signup' && (
+            <input
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="Email Address"
+              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+            />
+          )}
+          {mode === 'signup' && (
+            <input
+              value={inviteInput}
+              onChange={(event) => onInviteInputChange(event.target.value)}
+              placeholder="Username"
+              className="w-full rounded-2xl border border-brass/20 bg-[#0f0d0d] px-4 py-3 text-sm text-stone outline-none focus:border-amber-400"
+            />
+          )}
           {mode === 'signup' && (
             <input
               value={inviteInput}
