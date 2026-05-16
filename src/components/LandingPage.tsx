@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthFrame } from './AuthFrame';
 import { useAuth } from '../hooks/useAuth';
 
 export function LandingPage() {
   const auth = useAuth();
+  const navigate = useNavigate();
   
   const handleLogin = async () => {
     await auth.handleLogin();
+    if (auth.user) {
+        navigate('/Library');
+    }
   };
 
   return (
