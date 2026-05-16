@@ -23,6 +23,32 @@ export function useCampaign(username?: string, userRole?: string) {
 
   const isGM = userRole === 'admin' || userRole === 'gm';
 
+  const mapCampaign = (c: any): CampaignWiki => ({
+    ...c,
+    createdAt: c.created_at,
+    isDeleted: c.is_deleted,
+    deletedAt: c.deleted_at,
+    customGenres: c.custom_genres || [],
+    backgroundUrl: c.background_url,
+    inviteCode: c.invite_code,
+    genres: c.genres || []
+  });
+
+  const mapCampaignToDB = (c: CampaignWiki) => ({
+      id: c.id,
+      slug: c.slug,
+      title: c.title,
+      description: c.description,
+      owner: c.owner,
+      created_at: c.createdAt,
+      is_deleted: c.isDeleted,
+      deleted_at: c.deletedAt,
+      genres: c.genres,
+      custom_genres: c.customGenres,
+      background_url: c.backgroundUrl,
+      invite_code: c.inviteCode
+  });
+
   // Initialize data
   useEffect(() => {
     if (!username) {
@@ -44,10 +70,7 @@ export function useCampaign(username?: string, userRole?: string) {
         ]);
 
         if (cRes.data) {
-            setCampaigns(cRes.data.map(c => ({
-                ...c,
-                inviteCode: c.invite_code
-            })));
+            setCampaigns(cRes.data.map(mapCampaign));
         }
         if (aRes.data) setArticles(aRes.data);
         if (fRes.data) setFolders(fRes.data);
@@ -79,29 +102,41 @@ export function useCampaign(username?: string, userRole?: string) {
             }
         }).subscribe();
 
+    const campaignChannel = supabase.channel('campaign-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, (payload) => {
+            if (payload.eventType === 'INSERT') {
+                setCampaigns(prev => [mapCampaign(payload.new), ...prev]);
+            } else if (payload.eventType === 'UPDATE') {
+                setCampaigns(prev => prev.map(c => c.id === payload.new.id ? mapCampaign(payload.new) : c));
+            } else if (payload.eventType === 'DELETE') {
+                setCampaigns(prev => prev.filter(c => c.id !== payload.old.id));
+            }
+        }).subscribe();
+
     return () => {
         supabase.removeChannel(articleChannel);
         supabase.removeChannel(folderChannel);
+        supabase.removeChannel(campaignChannel);
     };
   }, [username]);
 
   const updateCampaign = async (updated: CampaignWiki) => {
-    const { error } = await supabase.from('campaigns').update(updated).eq('id', updated.id);
+    const { error } = await supabase.from('campaigns').update(mapCampaignToDB(updated)).eq('id', updated.id);
     if (error) console.warn('Supabase campaign update failed:', error);
   };
 
   const softDeleteCampaign = async (id: string) => {
     const { error } = await supabase.from('campaigns').update({ 
-        isDeleted: true, 
-        deletedAt: new Date().toISOString() 
+        is_deleted: true, 
+        deleted_at: new Date().toISOString() 
     }).eq('id', id);
     if (error) console.warn('Supabase campaign soft delete failed:', error);
   };
 
   const restoreCampaign = async (id: string) => {
     const { error } = await supabase.from('campaigns').update({ 
-        isDeleted: false, 
-        deletedAt: null 
+        is_deleted: false, 
+        deleted_at: null 
     }).eq('id', id);
     if (error) console.warn('Supabase campaign restore failed:', error);
   };
@@ -128,8 +163,11 @@ export function useCampaign(username?: string, userRole?: string) {
       customGenres: []
     };
 
-    const { error } = await supabase.from('campaigns').insert([newCampaign]);
-    if (error) console.warn('Supabase campaign save failed:', error);
+    const { error } = await supabase.from('campaigns').insert([mapCampaignToDB(newCampaign)]);
+    if (error) {
+        console.error('Supabase campaign save failed:', error);
+        throw new Error('Failed to establish campaign in database: ' + error.message);
+    }
     return newCampaign;
   };
 

@@ -15,6 +15,11 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 -- 5. Campaigns Extensions
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS invite_code TEXT;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS genres TEXT[] DEFAULT '{}';
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS custom_genres TEXT[] DEFAULT '{}';
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS background_url TEXT;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- 6. Realtime Configuration
 -- Enable realtime for the tables we want to sync in Google Docs style
