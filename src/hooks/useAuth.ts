@@ -119,11 +119,14 @@ export function useAuth() {
       return;
     }
 
-    const storedInvite = window.localStorage.getItem(INVITE_STORAGE_KEY);
-    if (!storedInvite || inviteInput.trim().toUpperCase() !== storedInvite) {
+    const isValid = await validateInviteCode(inviteInput.trim().toUpperCase(), 'SITE');
+    if (!isValid) {
       setAuthMessage('A valid Access Key is required to establish a new profile record.');
       return;
     }
+
+    // Mark code as used
+    await supabase.from('invite_codes').update({ used: true }).eq('code', inviteInput.trim().toUpperCase());
 
     const newProfile: UserProfile = {
       username: username.trim(),
@@ -168,8 +171,8 @@ export function useAuth() {
 
   const validateInviteCode = async (code: string, wikiId: string) => {
       const { data, error } = await supabase.from('invite_codes').select('*').eq('code', code).eq('wiki_id', wikiId).single();
-      if (error || !data) {
-          setInviteMessage('Invalid Access Key.');
+      if (error || !data || data.used || new Date(data.expires_at) < new Date()) {
+          setInviteMessage('Invalid or expired Access Key.');
           return false;
       }
       return true;
