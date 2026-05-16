@@ -107,7 +107,7 @@ export function WikiView() {
         <aside className='shrink-0 border-r border-brass/10 bg-[#101010] p-6 w-[320px] overflow-y-auto'>        
             <div className='flex justify-between mb-6'>
                 <Link to='/Library' className='text-xs uppercase tracking-[0.35em] text-brass/70'>Grand Library</Link> 
-                <button onClick={() => setIsSidebarOpen(false)} className='text-brass'>«</button>
+                <button onClick={() => setIsSidebarOpen(false)} className='text-brass'>ï¿½</button>
             </div>
 
             <h1 className='text-2xl font-semibold text-amber-200 mb-6'>{currentCampaign.title}</h1>
@@ -123,7 +123,7 @@ export function WikiView() {
 
             <div className='flex gap-4 mb-4'>
                 <button onClick={() => setActiveTab('articles')} className={activeTab === 'articles' ? 'text-brass' : 'text-stone'}>Recent Articles</button>
-                <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'>Notes</button>
+                <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'text-brass' : 'text-stone'}>Notes</button>
             </div>
 
             {canManage && (
@@ -165,7 +165,7 @@ export function WikiView() {
             {auth.user && <ProfileMenu />}
         </div>
         {!isSidebarOpen && (
-            <button onClick={() => setIsSidebarOpen(true)} className='fixed top-10 left-6 text-brass text-2xl z-10'>»</button>
+            <button onClick={() => setIsSidebarOpen(true)} className='fixed top-10 left-6 text-brass text-2xl z-10'>ï¿½</button>
         )}
         {canManage && !isPlayerView && (
              <button onClick={() => setDragMode(!dragMode)} className={`mb-4 p-2 rounded-full ${dragMode ? 'bg-amber-500/20 text-amber-500' : 'bg-brass/10 text-brass'}`}>

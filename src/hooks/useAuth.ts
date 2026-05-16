@@ -149,12 +149,28 @@ export function useAuth() {
     setAuthMessage('');
   };
 
-  const generateInviteCode = (wikiId: string) => {
-    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); 
-    window.localStorage.setItem(INVITE_STORAGE_KEY, code);
-    setInviteCode(code);
+  const generateInviteCode = async (wikiId: string) => {
+    if (user?.role !== 'admin') {
+        setInviteMessage('Access denied: Admin role required.');
+        return;
+    }
+    const code = wikiId.toUpperCase().slice(0, 3) + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const { error } = await supabase.from('invite_codes').insert([{ code, wiki_id: wikiId }]);
+    if (error) {
+        setInviteMessage('Failed to generate invite code.');
+        return;
+    }
     setInviteMessage('Access Key generated: ' + code);
     return code;
+  };
+
+  const validateInviteCode = async (code: string, wikiId: string) => {
+      const { data, error } = await supabase.from('invite_codes').select('*').eq('code', code).eq('wiki_id', wikiId).single();
+      if (error || !data) {
+          setInviteMessage('Invalid Access Key.');
+          return false;
+      }
+      return true;
   };
 
   const unlockWiki = (wikiId: string) => {
@@ -211,6 +227,7 @@ export function useAuth() {
     handleLogin,
     logout,
     generateInviteCode,
+    validateInviteCode,
     unlockWiki,
     updateAvatar,
     setAuthMessage,

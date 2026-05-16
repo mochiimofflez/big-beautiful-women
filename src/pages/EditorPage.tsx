@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArticleEditor } from '../components/ArticleEditor';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 import { useCampaign } from '../hooks/useCampaign';
 
 export function EditorPage() {
+  useAuthGuard();
   const { campaignSlug, articleId } = useParams();
   const navigate = useNavigate();
   const auth = useAuth();

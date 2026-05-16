@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCampaign } from '../hooks/useCampaign';
 import { useAuth } from '../hooks/useAuth';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import { ProfileMenu } from '../components/ProfileMenu';
 
 export function Home() {
+  useAuthGuard();
   const navigate = useNavigate();
   const auth = useAuth();
   const campaignManager = useCampaign(auth.user?.username);
@@ -24,16 +27,42 @@ export function Home() {
     }
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteInput, setDeleteInput] = useState('');
+
+  const handleDelete = (campaign: any) => {
+    if (deleteInput !== campaign.title) {
+        alert('Campaign name does not match.');
+        return;
+    }
+    campaignManager.softDeleteCampaign(campaign.id);
+    setDeleteConfirm(null);
+    setDeleteInput('');
+  };
+
   return (
     <div className='min-h-screen bg-charcoal text-stone p-10'>
-      <div className='absolute top-10 left-10'>
-        <Link to='/' className='text-xs uppercase tracking-[0.35em] text-brass/70 hover:text-brass'>Return to Archive</Link>
-      </div>
+      {deleteConfirm && (
+        <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4'>
+            <div className='bg-[#0d0b0b] border border-brass/20 p-8 rounded-3xl w-full max-w-sm'>
+                <h2 className='text-xl text-amber-100 mb-4'>Delete Campaign?</h2>
+                <p className='text-sm text-stone/70 mb-4'>Enter the campaign title to confirm: <span className='text-brass font-bold'>{campaignManager.campaigns.find(c => c.id === deleteConfirm)?.title}</span></p>
+                <input 
+                    className='w-full p-2 bg-[#151313] border border-brass/20 rounded-lg mb-4 text-stone'
+                    value={deleteInput}
+                    onChange={(e) => setDeleteInput(e.target.value)}
+                />
+                <div className='flex gap-2'>
+                    <button onClick={() => setDeleteConfirm(null)} className='flex-1 p-2 rounded-lg bg-stone/10'>Cancel</button>
+                    <button onClick={() => handleDelete(campaignManager.campaigns.find(c => c.id === deleteConfirm))} className='flex-1 p-2 rounded-lg bg-red-900/20 text-red-300'>Delete</button>
+                </div>
+            </div>
+        </div>
+      )}
       {auth.user && (
-          <Link to={'/Users/' + auth.user.username} className='absolute top-10 right-10 flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313] hover:border-brass/40 transition'>
-            <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' />
-            <span className='text-stone font-medium'>{auth.user.username}</span>
-          </Link>
+          <div className='absolute top-10 right-10'>
+            <ProfileMenu />
+          </div>
       )}
       <div className='mx-auto max-w-[1200px] space-y-12'>
         <header className='text-center space-y-4'>
@@ -79,18 +108,28 @@ export function Home() {
               {campaignManager.campaigns.length === 0 ? (
                 <p className='text-stone/50 italic'>No campaigns found in the library records.</p>
               ) : (
-                campaignManager.campaigns.map(c => (
-                  <Link
-                    key={c.id}
-                    to={'/Campaigns/' + c.id}
-                    className='block group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md'
-                  >
-                    <div className='flex justify-between items-start mb-2'>
-                      <h3 className='text-xl font-semibold text-amber-50 group-hover:border-amber-200 transition-colors'>{c.title}</h3>
-                      <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span> 
-                    </div>
-                    <p className='text-sm text-stone/70 line-clamp-2'>{c.description}</p>
-                  </Link>
+                campaignManager.activeCampaigns.map(c => (
+                  <div key={c.id} className='relative group rounded-3xl border border-brass/5 bg-[#101010] p-6 hover:border-brass/30 transition-all shadow-md'>
+                      <Link to={'/Campaigns/' + c.id} className='block'>
+                        <div className='flex justify-between items-start mb-2'>
+                          <h3 className='text-xl font-semibold text-amber-50'>{c.title}</h3>
+                          <span className='text-[10px] uppercase tracking-widest text-brass/40'>By {c.owner}</span> 
+                        </div>
+                        <p className='text-sm text-stone/70 line-clamp-2'>{c.description}</p>
+                      </Link>
+                      {auth.user?.username === c.owner && (
+                        <button 
+                          onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDeleteConfirm(c.id);
+                          }}
+                          className='absolute bottom-4 right-4 text-stone/30 hover:text-red-400'
+                        >
+                          ⚙️
+                        </button>
+                      )}
+                  </div>
                 ))
               )}
             </div>

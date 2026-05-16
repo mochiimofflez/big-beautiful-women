@@ -16,7 +16,10 @@ export function AdminPage() {
     <div className='p-10 text-stone'>
       <h1 className='text-2xl font-bold mb-4'>Admin Panel</h1>
       <button
-        onClick={() => setInvite(auth.generateInviteCode('SITE'))}
+        onClick={async () => {
+          const code = await auth.generateInviteCode('SITE');
+          if (code) setInvite(code);
+        }}
         className='bg-brass text-charcoal px-4 py-2 rounded mb-6'
       >
         Generate Site Invite

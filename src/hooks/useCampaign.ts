@@ -21,31 +21,27 @@ export function useCampaign(username?: string) {
   // Initialize data
   useEffect(() => {
     async function initCampaigns() {
+      if (!username) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
 
-      // 1. Load campaigns
-      const { data: remoteCampaigns } = await supabase.from('campaigns').select('*');
-      if (remoteCampaigns && remoteCampaigns.length > 0) {
-        setCampaigns(remoteCampaigns);
-      } else {
-        const raw = window.localStorage.getItem(CAMPAIGNS_KEY);
-        setCampaigns(raw ? JSON.parse(raw) : []);
-      }
+      // Fetch from Supabase
+      const { data: remoteCampaigns, error: cError } = await supabase.from('campaigns').select('*');
+      if (cError) console.error('Supabase campaign load error:', cError);
+      
+      const { data: remoteArticles, error: aError } = await supabase.from('articles').select('*');
+      if (aError) console.error('Supabase article load error:', aError);
 
-      // 2. Load articles
-      const { data: remoteArticles } = await supabase.from('articles').select('*');
-      if (remoteArticles && remoteArticles.length > 0) {
-        setArticles(remoteArticles);
-      } else {
-        const raw = window.localStorage.getItem(ARTICLES_KEY);
-        setArticles(raw ? JSON.parse(raw) : []);
-      }
+      setCampaigns(remoteCampaigns || []);
+      setArticles(remoteArticles || []);
 
       setLoading(false);
     }
 
     initCampaigns();
-  }, []);
+  }, [username]);
 
   const softDeleteCampaign = async (id: string) => {
     const updated = campaigns.map((c) =>
@@ -62,6 +58,24 @@ export function useCampaign(username?: string) {
     setCampaigns(updated);
     window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
   };
+
+  const cleanupExpiredCampaigns = useCallback(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const updated = campaigns.filter(c => 
+        !c.isDeleted || (c.deletedAt && new Date(c.deletedAt) > thirtyDaysAgo)
+    );
+    
+    if (updated.length !== campaigns.length) {
+        setCampaigns(updated);
+        window.localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+    }
+  }, [campaigns]);
+
+  useEffect(() => {
+    cleanupExpiredCampaigns();
+  }, [cleanupExpiredCampaigns]);
 
   const activeCampaigns = campaigns.filter(c => !c.isDeleted);
   const archivedCampaigns = campaigns.filter(c => c.isDeleted);

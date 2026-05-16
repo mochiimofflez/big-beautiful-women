@@ -22,7 +22,7 @@ export function ProfileMenu() {
 
   return (
     <div className='relative' ref={menuRef}>
-      <div 
+      <span 
         role='button'
         tabIndex={0}
         onClick={(e) => {
@@ -38,9 +38,9 @@ export function ProfileMenu() {
         }}
         className='flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313] hover:border-brass/40 transition w-full cursor-pointer'
       >
-        <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' style={{ pointerEvents: 'none' }} />
-        <span className='text-stone font-medium' style={{ pointerEvents: 'none' }}>{auth.user.username}</span>  
-      </div>
+        <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' />
+        <span className='text-stone font-medium'>{auth.user.username}</span>  
+      </span>
 
       {isOpen && (
         <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-[9999]' style={{ display: 'block' }}> 
