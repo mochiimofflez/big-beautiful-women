@@ -31,12 +31,12 @@ export function ProfileMenu() {
         }}
         className='flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313] hover:border-brass/40 transition w-full'
       >
-        <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' />
+        <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' style={{ pointerEvents: 'none' }} />
         <span className='text-stone font-medium' style={{ pointerEvents: 'none' }}>{auth.user.username}</span>
       </button>
 
       {isOpen && (
-        <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-50'> 
+        <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-50' style={{ display: 'block' }}> 
           <Link to={`/Users/${auth.user.username}`} className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>View Profile</Link>
           <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Status</button>   
           <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Settings</button> 
