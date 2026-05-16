@@ -1,21 +1,6 @@
-interface AuthFrameProps {
-  show: boolean;
-  mode: 'signin' | 'signup';
-  handleOrEmail: string;
-  username: string; // Add username field
-  email: string;
-  password: string;
-  inviteInput: string;
-  authMessage: string;
-  successMessage?: string;
-  onClose: () => void;
-  onToggleMode: () => void;
-  onHandleOrEmailChange: (value: string) => void;
-  onUsernameChange: (value: string) => void; // Add handler
-  onEmailChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
   onInviteInputChange: (value: string) => void;
   onSubmit: () => void;
+  isLoading: boolean;
 }
 
 export function AuthFrame({
@@ -36,6 +21,7 @@ export function AuthFrame({
   onPasswordChange,
   onInviteInputChange,
   onSubmit,
+  isLoading,
 }: AuthFrameProps) {
   if (!show) return null;
 
@@ -102,15 +88,17 @@ export function AuthFrame({
           {successMessage && <p className="text-[11px] text-emerald-400">{successMessage}</p>}
           <button
             type="button"
+            disabled={isLoading}
             onClick={onSubmit}
-            className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300"
+            className="w-full rounded-2xl bg-brass px-4 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-charcoal transition hover:bg-amber-300 disabled:opacity-50"
           >
-            {mode === 'signin' ? 'Enter Archive' : 'Establish Record'}
+            {isLoading ? 'Processing...' : (mode === 'signin' ? 'Enter Archive' : 'Establish Record')}
           </button>
           <button
             type="button"
+            disabled={isLoading}
             onClick={onToggleMode}
-            className="w-full rounded-2xl border border-brass/20 bg-transparent px-4 py-3 text-xs uppercase tracking-[0.25em] text-stone/70 transition hover:bg-brass/10"
+            className="w-full rounded-2xl border border-brass/20 bg-transparent px-4 py-3 text-xs uppercase tracking-[0.25em] text-stone/70 transition hover:bg-brass/10 disabled:opacity-50"
           >
             Switch to {mode === 'signin' ? 'Sign Up' : 'Sign In'}
           </button>

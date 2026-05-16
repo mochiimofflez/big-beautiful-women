@@ -13,19 +13,24 @@ export function LandingPage() {
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
     setSuccessMessage('');
+    setIsLoading(true);
     if (mode === 'signup') {
         await auth.handleSignUp(username, password, email);
     } else {
         await auth.handleLogin(handleOrEmail, password);
     }
+    setIsLoading(false);
+
     if (auth.user) {
         if (mode === 'signup') {
-            setSuccessMessage('Successfully signed up!');
+            setSuccessMessage('Successfully signed up! Please check your email to verify your account.');
+        } else {
+            setTimeout(() => navigate('/Library'), 1500);
         }
-        setTimeout(() => navigate('/Library'), 1500);
     }
   };
 
@@ -41,6 +46,7 @@ export function LandingPage() {
         inviteInput={auth.inviteInput}
         authMessage={auth.authMessage}
         successMessage={successMessage}
+        isLoading={isLoading}
         onClose={() => {}}
         onToggleMode={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
         onHandleOrEmailChange={setHandleOrEmail}
