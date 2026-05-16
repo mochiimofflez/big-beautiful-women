@@ -24,22 +24,26 @@ export function ProfileMenu() {
     <div className='relative' ref={menuRef}>
       <button 
         type='button'
-        onClick={() => setIsOpen(!isOpen)} 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className='flex items-center gap-3 p-2 rounded-2xl border border-brass/10 bg-[#151313] hover:border-brass/40 transition w-full'
       >
         <img src={auth.user.avatarUrl || '/default-avatar.png'} alt={auth.user.username} className='h-10 w-10 rounded-full object-cover' />
-        <span className='text-stone font-medium'style={{ pointerEvents: 'none' }}>{auth.user.username}</span>
+        <span className='text-stone font-medium' style={{ pointerEvents: 'none' }}>{auth.user.username}</span>
       </button>
 
       {isOpen && (
         <div className='absolute right-0 top-16 w-48 bg-[#1c1a1a] border border-brass/10 rounded-2xl p-2 z-50'> 
           <Link to={`/Users/${auth.user.username}`} className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>View Profile</Link>
-          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Status</button>   
-          <button className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Settings</button> 
+          <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Status</button>   
+          <button type='button' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-stone' onClick={() => setIsOpen(false)}>Settings</button> 
           {auth.user.role === 'admin' && (
             <Link to='/Admin' className='block w-full text-left p-2 hover:bg-brass/10 rounded text-amber-500' onClick={() => setIsOpen(false)}>Admin Panel</Link>
           )}
-          <button onClick={() => { auth.logout(); setIsOpen(false); navigate('/Library'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
+          <button type='button' onClick={() => { auth.logout(); setIsOpen(false); navigate('/Library'); }} className='block w-full text-left p-2 text-red-400 hover:bg-red-900/20 rounded'>Logout</button>
         </div>
       )}
     </div>
