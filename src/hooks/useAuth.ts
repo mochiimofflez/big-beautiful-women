@@ -59,7 +59,7 @@ export function useAuth() {
       // 2. Load current session
       const currentUsername = window.localStorage.getItem(CURRENT_USER_KEY);
       if (currentUsername) {
-        const found = initialProfiles.find(p => p.username.toLowerCase() === currentUsername.toLowerCase());
+        const found = initialProfiles.find(p => p.username.toLowerCase() === currentUsername.toLowerCase());    
         if (found) setUser(found);
       }
 
@@ -81,14 +81,13 @@ export function useAuth() {
 
   const handleLogin = async () => {
     const lowerUsername = username.trim().toLowerCase();
-    
+
     if (!lowerUsername || !password) {
       setAuthMessage('Both handle and secret phrase are required.');
       return;
     }
 
     const existing = profiles.find((profile) => profile.username.toLowerCase() === lowerUsername);
-    console.log('Login attempt for:', lowerUsername, 'Existing:', existing);
 
     // SIGN IN Flow
     if (authMode === 'signin') {
@@ -191,6 +190,7 @@ export function useAuth() {
 
   return {
     user,
+    loading,
     showLogin,
     authMode,
     username,

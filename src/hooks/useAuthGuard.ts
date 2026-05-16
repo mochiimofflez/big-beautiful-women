@@ -7,10 +7,11 @@ export function useAuthGuard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!auth.user) {
+    // Only guard if loading has finished and user is null
+    if (!auth.loading && auth.user === null) {
       navigate('/');
     }
-  }, [auth.user, navigate]);
+  }, [auth.user, auth.loading, navigate]);
 
   return auth.user;
 }
