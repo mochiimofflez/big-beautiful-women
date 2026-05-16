@@ -1,4 +1,4 @@
 export const SUPABASE_CONFIG = {
-  url: 'https://afwsamjxywovspimfdvp.supabase.co',
-  anonKey: 'sb_publishable_Epuni8R_N-WQS4URnP9CyQ_rVCdNNeO'
+  url: import.meta.env.VITE_SUPABASE_URL || '',
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 };
